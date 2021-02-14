@@ -2,7 +2,7 @@
 name = "tinkoff-invest"
 version = "0.1.0"
 authors = ["WatchDG <baranov@w3m.co>"]
-license-file = "LICENSE"
+license = "MIT OR Apache-2.0"
 description = "tinkoff invest library"
 homepage = "https://github.com/WatchDG/rust-tinkoff-invest"
 documentation = "https://docs.rs/tinkoff-invest"
