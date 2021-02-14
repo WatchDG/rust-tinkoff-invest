@@ -2,6 +2,12 @@
 name = "tinkoff-invest"
 version = "0.1.0"
 authors = ["WatchDG <baranov@w3m.co>"]
+license-file = "LICENSE"
+description = "tinkoff invest library"
+homepage = "https://github.com/WatchDG/rust-tinkoff-invest"
+documentation = "https://docs.rs/tinkoff-invest"
+repository = "https://github.com/WatchDG/rust-tinkoff-invest"
+readme = "README.md"
 edition = "2018"
 
 [dependencies]
