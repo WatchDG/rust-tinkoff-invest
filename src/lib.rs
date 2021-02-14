@@ -114,4 +114,31 @@ impl TinkoffInvest {
         )?;
         Ok(data.payload.instruments)
     }
+
+    pub async fn get_bonds(&self) -> Result<Vec<TinkoffInstrument>> {
+        let uri = (self.base_url.to_owned() + "/market/bonds").parse::<Uri>()?;
+        let response_data = request_get(&self.client, &uri, self.token).await?;
+        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
+            response_data.as_ref(),
+        )?;
+        Ok(data.payload.instruments)
+    }
+
+    pub async fn get_etfs(&self) -> Result<Vec<TinkoffInstrument>> {
+        let uri = (self.base_url.to_owned() + "/market/etfs").parse::<Uri>()?;
+        let response_data = request_get(&self.client, &uri, self.token).await?;
+        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
+            response_data.as_ref(),
+        )?;
+        Ok(data.payload.instruments)
+    }
+
+    pub async fn get_currencies(&self) -> Result<Vec<TinkoffInstrument>> {
+        let uri = (self.base_url.to_owned() + "/market/currencies").parse::<Uri>()?;
+        let response_data = request_get(&self.client, &uri, self.token).await?;
+        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
+            response_data.as_ref(),
+        )?;
+        Ok(data.payload.instruments)
+    }
 }
