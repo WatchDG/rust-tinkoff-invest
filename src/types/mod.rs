@@ -1,5 +1,3 @@
-use serde::Deserialize;
-
 use tinkoff_invest_types::Currency;
 
 #[derive(Debug)]

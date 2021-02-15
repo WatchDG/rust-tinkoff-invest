@@ -4,23 +4,25 @@ extern crate bytes;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate serde;
+#[macro_use]
 extern crate serde_json;
 extern crate tinkoff_invest_types;
 
-use bytes::{BufMut, BytesMut};
 use hyper::{
-    body::HttpBody,
     client::{Client, HttpConnector},
-    Body, Method, Request, StatusCode, Uri,
+    StatusCode, Uri,
 };
 use hyper_tls::HttpsConnector;
 
 use tinkoff_invest_types::{
-    MarketInstrument, MarketInstruments, Order, ResponseData, UserAccount, UserAccounts,
+    ErrorPayload, MarketInstrument, MarketInstrumentsPayload, OperationType, Order,
+    PlacedLimitOrder, ResponseData,
 };
 
+mod request;
 mod types;
 
+use crate::request::{request_get, request_post};
 use crate::types::Stock;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -45,101 +47,54 @@ lazy_static! {
     static ref GET_ORDERS_URI: Uri = (BASE_URI.to_owned() + "/orders").parse::<Uri>().unwrap();
 }
 
-async fn request_get(
-    client: &Client<HttpsConnector<HttpConnector>>,
-    uri: &Uri,
-    auth: &str,
-) -> Result<BytesMut> {
-    let request = Request::builder()
-        .method(Method::GET)
-        .uri(uri)
-        .header("Authorization", auth)
-        .body(Body::empty())?;
-    let mut response = client.request(request).await?;
-    let status = response.status();
-    if status == StatusCode::UNAUTHORIZED {
-        let error = std::io::Error::new(std::io::ErrorKind::Other, "UNAUTHORIZED");
-        return Err(Box::new(error));
-    }
-    let mut body = BytesMut::with_capacity(1024);
-    while let Some(chunk) = response.body_mut().data().await {
-        body.put(chunk?);
-    }
-    Ok(body)
-}
-
 pub struct TinkoffInvest {
     client: Client<HttpsConnector<HttpConnector>>,
     auth: String,
 }
 
 impl TinkoffInvest {
-    pub fn new(token: &'static str) -> TinkoffInvest {
+    pub fn new(token: &str) -> TinkoffInvest {
         let https = HttpsConnector::new();
         let client = Client::builder().build(https);
         let auth = "Bearer ".to_owned() + token;
         TinkoffInvest { client, auth }
     }
 
-    pub async fn get_stock_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
-        let response_data = request_get(&self.client, &GET_STOCKS_URI, self.auth.as_str()).await?;
-        let data =
-            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
+    /// Get stocks as market instruments
+    pub async fn stock_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &GET_STOCKS_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_bond_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
-        let response_data = request_get(&self.client, &GET_BONDS_URI, self.auth.as_str()).await?;
-        let data =
-            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
+    /// Get bonds as market instruments
+    pub async fn bond_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &GET_BONDS_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_etf_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
-        let response_data = request_get(&self.client, &GET_ETFS_URI, self.auth.as_str()).await?;
-        let data =
-            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
+    /// Get etf as market instruments
+    pub async fn etf_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &GET_ETFS_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_currency_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
-        let response_data =
+    /// Get currencies as market instruments
+    pub async fn currency_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
+        let (_status_code, _headers, body) =
             request_get(&self.client, &GET_CURRENCIES_URI, self.auth.as_str()).await?;
-        let data =
-            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
+        let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
-    }
-
-    pub async fn get_market_instrument_by_ticker(
-        &self,
-        ticker: &str,
-    ) -> Result<Vec<MarketInstrument>> {
-        let uri =
-            (BASE_URI.to_owned() + "/market/search/by-ticker?ticker=" + ticker).parse::<Uri>()?;
-        let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
-        let data =
-            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
-        Ok(data.payload.instruments)
-    }
-
-    pub async fn get_market_instrument_by_figi(&self, figi: &str) -> Result<Vec<MarketInstrument>> {
-        let uri = (BASE_URI.to_owned() + "/market/search/by-figi?figi=" + figi).parse::<Uri>()?;
-        let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
-        let data =
-            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
-        Ok(data.payload.instruments)
-    }
-
-    pub async fn get_accounts(&self) -> Result<Vec<UserAccount>> {
-        let response_data =
-            request_get(&self.client, &GET_ACCOUNTS_URI, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<ResponseData<UserAccounts>>(response_data.as_ref())?;
-        Ok(data.payload.accounts)
     }
 
     /// Get stocks
-    pub async fn get_stocks(&self) -> Result<Vec<Stock>> {
-        let market_instruments = self.get_stock_market_instruments().await?;
+    pub async fn stocks(&self) -> Result<Vec<Stock>> {
+        let market_instruments = self.stock_market_instruments().await?;
         let stocks = market_instruments
             .into_iter()
             .filter_map(|tmi| {
@@ -162,9 +117,42 @@ impl TinkoffInvest {
     }
 
     /// Get active orders
-    pub async fn get_orders(&self) -> Result<Vec<Order>> {
-        let response_data = request_get(&self.client, &GET_ORDERS_URI, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<ResponseData<Vec<Order>>>(response_data.as_ref())?;
+    pub async fn orders(&self) -> Result<Vec<Order>> {
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &GET_ORDERS_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<Vec<Order>>>(body.as_ref())?;
+        Ok(data.payload)
+    }
+
+    /// Place limit order
+    pub async fn limit_order(
+        &self,
+        figi: &str,
+        operation: OperationType,
+        lots: u64,
+        price: f64,
+    ) -> Result<PlacedLimitOrder> {
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query("/openapi/orders/limit-order?figi=".to_owned() + figi)
+            .build()?;
+        let payload = json!({
+            "operation": operation,
+            "lots": lots,
+            "price": price
+        })
+        .to_string();
+        let (status_code, _headers, body) =
+            request_post(&self.client, &uri, &self.auth, payload.as_ref()).await?;
+        if status_code != StatusCode::OK {
+            let data = serde_json::from_slice::<ResponseData<ErrorPayload>>(body.as_ref())?;
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                data.payload.message,
+            )));
+        }
+        let data = serde_json::from_slice::<ResponseData<PlacedLimitOrder>>(body.as_ref())?;
         Ok(data.payload)
     }
 }
