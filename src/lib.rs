@@ -5,6 +5,7 @@ extern crate hyper;
 extern crate hyper_tls;
 extern crate serde;
 extern crate serde_json;
+extern crate tinkoff_invest_types;
 
 use bytes::{BufMut, BytesMut};
 use hyper::{
@@ -14,10 +15,13 @@ use hyper::{
 };
 use hyper_tls::HttpsConnector;
 
+use tinkoff_invest_types::{
+    MarketInstrument, MarketInstruments, Order, ResponseData, UserAccount, UserAccounts,
+};
+
 mod types;
 
-use crate::types::{TinkoffUserAccount, TinkoffUserAccounts, Stock};
-use types::{TinkoffMarketInstrument, TinkoffInstruments, TinkoffResponseData};
+use crate::types::Stock;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -38,6 +42,7 @@ lazy_static! {
     static ref GET_ACCOUNTS_URI: Uri = (BASE_URI.to_owned() + "/user/accounts")
         .parse::<Uri>()
         .unwrap();
+    static ref GET_ORDERS_URI: Uri = (BASE_URI.to_owned() + "/orders").parse::<Uri>().unwrap();
 }
 
 async fn request_get(
@@ -76,82 +81,73 @@ impl TinkoffInvest {
         TinkoffInvest { client, auth }
     }
 
-    pub async fn get_stock_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
+    pub async fn get_stock_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let response_data = request_get(&self.client, &GET_STOCKS_URI, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
-            response_data.as_ref(),
-        )?;
+        let data =
+            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_bond_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
+    pub async fn get_bond_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let response_data = request_get(&self.client, &GET_BONDS_URI, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
-            response_data.as_ref(),
-        )?;
+        let data =
+            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_etf_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
+    pub async fn get_etf_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let response_data = request_get(&self.client, &GET_ETFS_URI, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
-            response_data.as_ref(),
-        )?;
+        let data =
+            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_currency_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
+    pub async fn get_currency_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let response_data =
             request_get(&self.client, &GET_CURRENCIES_URI, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
-            response_data.as_ref(),
-        )?;
+        let data =
+            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
         Ok(data.payload.instruments)
     }
 
     pub async fn get_market_instrument_by_ticker(
         &self,
         ticker: &str,
-    ) -> Result<Vec<TinkoffMarketInstrument>> {
+    ) -> Result<Vec<MarketInstrument>> {
         let uri =
             (BASE_URI.to_owned() + "/market/search/by-ticker?ticker=" + ticker).parse::<Uri>()?;
         let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
-            response_data.as_ref(),
-        )?;
+        let data =
+            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_market_instrument_by_figi(
-        &self,
-        figi: &str,
-    ) -> Result<Vec<TinkoffMarketInstrument>> {
+    pub async fn get_market_instrument_by_figi(&self, figi: &str) -> Result<Vec<MarketInstrument>> {
         let uri = (BASE_URI.to_owned() + "/market/search/by-figi?figi=" + figi).parse::<Uri>()?;
         let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
-            response_data.as_ref(),
-        )?;
+        let data =
+            serde_json::from_slice::<ResponseData<MarketInstruments>>(response_data.as_ref())?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_accounts(&self) -> Result<Vec<TinkoffUserAccount>> {
+    pub async fn get_accounts(&self) -> Result<Vec<UserAccount>> {
         let response_data =
             request_get(&self.client, &GET_ACCOUNTS_URI, self.auth.as_str()).await?;
-        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffUserAccounts>>(
-            response_data.as_ref(),
-        )?;
+        let data = serde_json::from_slice::<ResponseData<UserAccounts>>(response_data.as_ref())?;
         Ok(data.payload.accounts)
     }
 
-    /// get stocks
+    /// Get stocks
     pub async fn get_stocks(&self) -> Result<Vec<Stock>> {
         let market_instruments = self.get_stock_market_instruments().await?;
-        let stocks = market_instruments.into_iter().filter_map(|tmi| {
-            if tmi.isin.is_none() || tmi.min_price_increment.is_none() || tmi.currency.is_none() {
-                return Option::None;
-            }
-            Option::Some(
-                Stock {
+        let stocks = market_instruments
+            .into_iter()
+            .filter_map(|tmi| {
+                if tmi.isin.is_none() || tmi.min_price_increment.is_none() || tmi.currency.is_none()
+                {
+                    return Option::None;
+                }
+                Option::Some(Stock {
                     figi: tmi.figi,
                     ticker: tmi.ticker,
                     name: tmi.name,
@@ -159,9 +155,16 @@ impl TinkoffInvest {
                     min_price_increment: tmi.min_price_increment?,
                     lot: tmi.lot,
                     currency: tmi.currency?,
-                }
-            )
-        }).collect();
+                })
+            })
+            .collect();
         Ok(stocks)
+    }
+
+    /// Get active orders
+    pub async fn get_orders(&self) -> Result<Vec<Order>> {
+        let response_data = request_get(&self.client, &GET_ORDERS_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<Vec<Order>>>(response_data.as_ref())?;
+        Ok(data.payload)
     }
 }
