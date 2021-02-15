@@ -16,16 +16,28 @@ use hyper_tls::HttpsConnector;
 
 mod types;
 
+use crate::types::{TinkoffUserAccount, TinkoffUserAccounts};
 use types::{TinkoffInstrument, TinkoffInstruments, TinkoffResponseData};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 lazy_static! {
     static ref BASE_URI: &'static str = "https://api-invest.tinkoff.ru/openapi";
-    static ref GET_STOCKS_URI: Uri = (BASE_URI.to_owned() + "/market/stocks").parse::<Uri>().unwrap();
-    static ref GET_BONDS_URI: Uri = (BASE_URI.to_owned() + "/market/bonds").parse::<Uri>().unwrap();
-    static ref GET_ETFS_URI: Uri = (BASE_URI.to_owned() + "/market/etfs").parse::<Uri>().unwrap();
-    static ref GET_CURRENCIES_URI: Uri = (BASE_URI.to_owned() + "/market/currencies").parse::<Uri>().unwrap();
+    static ref GET_STOCKS_URI: Uri = (BASE_URI.to_owned() + "/market/stocks")
+        .parse::<Uri>()
+        .unwrap();
+    static ref GET_BONDS_URI: Uri = (BASE_URI.to_owned() + "/market/bonds")
+        .parse::<Uri>()
+        .unwrap();
+    static ref GET_ETFS_URI: Uri = (BASE_URI.to_owned() + "/market/etfs")
+        .parse::<Uri>()
+        .unwrap();
+    static ref GET_CURRENCIES_URI: Uri = (BASE_URI.to_owned() + "/market/currencies")
+        .parse::<Uri>()
+        .unwrap();
+    static ref GET_ACCOUNTS_URI: Uri = (BASE_URI.to_owned() + "/user/accounts")
+        .parse::<Uri>()
+        .unwrap();
 }
 
 async fn request_get(
@@ -61,10 +73,7 @@ impl TinkoffInvest {
         let https = HttpsConnector::new();
         let client = Client::builder().build(https);
         let auth = "Bearer ".to_owned() + token;
-        TinkoffInvest {
-            client,
-            auth,
-        }
+        TinkoffInvest { client, auth }
     }
 
     pub async fn get_stocks(&self) -> Result<Vec<TinkoffInstrument>> {
@@ -92,19 +101,45 @@ impl TinkoffInvest {
     }
 
     pub async fn get_currencies(&self) -> Result<Vec<TinkoffInstrument>> {
-        let response_data = request_get(&self.client, &GET_CURRENCIES_URI, self.auth.as_str()).await?;
+        let response_data =
+            request_get(&self.client, &GET_CURRENCIES_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
             response_data.as_ref(),
         )?;
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_market_instrument_by_ticker(&self, ticker: &str) -> Result<Vec<TinkoffInstrument>> {
-        let uri = (BASE_URI.to_owned() + "/market/search/by-ticker?ticker=" + ticker).parse::<Uri>()?;
+    pub async fn get_market_instrument_by_ticker(
+        &self,
+        ticker: &str,
+    ) -> Result<Vec<TinkoffInstrument>> {
+        let uri =
+            (BASE_URI.to_owned() + "/market/search/by-ticker?ticker=" + ticker).parse::<Uri>()?;
         let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
             response_data.as_ref(),
         )?;
         Ok(data.payload.instruments)
+    }
+
+    pub async fn get_market_instrument_by_figi(
+        &self,
+        figi: &str,
+    ) -> Result<Vec<TinkoffInstrument>> {
+        let uri = (BASE_URI.to_owned() + "/market/search/by-figi?figi=" + figi).parse::<Uri>()?;
+        let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
+            response_data.as_ref(),
+        )?;
+        Ok(data.payload.instruments)
+    }
+
+    pub async fn get_accounts(&self) -> Result<Vec<TinkoffUserAccount>> {
+        let response_data =
+            request_get(&self.client, &GET_ACCOUNTS_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<TinkoffResponseData<TinkoffUserAccounts>>(
+            response_data.as_ref(),
+        )?;
+        Ok(data.payload.accounts)
     }
 }

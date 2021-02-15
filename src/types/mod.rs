@@ -22,6 +22,25 @@ pub enum InstrumentType {
 }
 
 #[derive(Deserialize, Debug)]
+pub enum BrokerAccountType {
+    Tinkoff,
+    TinkoffIis,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct TinkoffUserAccount {
+    #[serde(rename(serialize = "brokerAccountId", deserialize = "brokerAccountId"))]
+    pub broker_account_id: String,
+    #[serde(rename(serialize = "brokerAccountType", deserialize = "brokerAccountType"))]
+    pub broker_account_type: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct TinkoffUserAccounts {
+    pub accounts: Vec<TinkoffUserAccount>,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct TinkoffInstrument {
     pub figi: String,
     pub ticker: String,
