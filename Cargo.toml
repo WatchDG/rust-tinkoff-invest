@@ -1,6 +1,6 @@
 [package]
 name = "tinkoff-invest"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["WatchDG <baranov@w3m.co>"]
 license = "MIT OR Apache-2.0"
 description = "tinkoff invest library"
@@ -17,8 +17,9 @@ exclude = [
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-hyper = { version = "0.14", features = ["full"] }
-hyper-tls = { version = "0.5"}
-bytes = { version = "1"}
+hyper = { version = "0.14", features = ["http1", "client"] }
+hyper-tls = { version = "0.5" }
+bytes = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
+lazy_static = { version = "1.4.0" }
