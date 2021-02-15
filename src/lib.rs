@@ -16,8 +16,8 @@ use hyper_tls::HttpsConnector;
 
 mod types;
 
-use crate::types::{TinkoffUserAccount, TinkoffUserAccounts};
-use types::{TinkoffInstrument, TinkoffInstruments, TinkoffResponseData};
+use crate::types::{TinkoffUserAccount, TinkoffUserAccounts, Stock};
+use types::{TinkoffMarketInstrument, TinkoffInstruments, TinkoffResponseData};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -76,7 +76,7 @@ impl TinkoffInvest {
         TinkoffInvest { client, auth }
     }
 
-    pub async fn get_stocks(&self) -> Result<Vec<TinkoffInstrument>> {
+    pub async fn get_stock_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
         let response_data = request_get(&self.client, &GET_STOCKS_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
             response_data.as_ref(),
@@ -84,7 +84,7 @@ impl TinkoffInvest {
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_bonds(&self) -> Result<Vec<TinkoffInstrument>> {
+    pub async fn get_bond_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
         let response_data = request_get(&self.client, &GET_BONDS_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
             response_data.as_ref(),
@@ -92,7 +92,7 @@ impl TinkoffInvest {
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_etfs(&self) -> Result<Vec<TinkoffInstrument>> {
+    pub async fn get_etf_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
         let response_data = request_get(&self.client, &GET_ETFS_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
             response_data.as_ref(),
@@ -100,7 +100,7 @@ impl TinkoffInvest {
         Ok(data.payload.instruments)
     }
 
-    pub async fn get_currencies(&self) -> Result<Vec<TinkoffInstrument>> {
+    pub async fn get_currency_market_instruments(&self) -> Result<Vec<TinkoffMarketInstrument>> {
         let response_data =
             request_get(&self.client, &GET_CURRENCIES_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
@@ -112,7 +112,7 @@ impl TinkoffInvest {
     pub async fn get_market_instrument_by_ticker(
         &self,
         ticker: &str,
-    ) -> Result<Vec<TinkoffInstrument>> {
+    ) -> Result<Vec<TinkoffMarketInstrument>> {
         let uri =
             (BASE_URI.to_owned() + "/market/search/by-ticker?ticker=" + ticker).parse::<Uri>()?;
         let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
@@ -125,7 +125,7 @@ impl TinkoffInvest {
     pub async fn get_market_instrument_by_figi(
         &self,
         figi: &str,
-    ) -> Result<Vec<TinkoffInstrument>> {
+    ) -> Result<Vec<TinkoffMarketInstrument>> {
         let uri = (BASE_URI.to_owned() + "/market/search/by-figi?figi=" + figi).parse::<Uri>()?;
         let response_data = request_get(&self.client, &uri, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<TinkoffResponseData<TinkoffInstruments>>(
@@ -141,5 +141,27 @@ impl TinkoffInvest {
             response_data.as_ref(),
         )?;
         Ok(data.payload.accounts)
+    }
+
+    /// get stocks
+    pub async fn get_stocks(&self) -> Result<Vec<Stock>> {
+        let market_instruments = self.get_stock_market_instruments().await?;
+        let stocks = market_instruments.into_iter().filter_map(|tmi| {
+            if tmi.isin.is_none() || tmi.min_price_increment.is_none() || tmi.currency.is_none() {
+                return Option::None;
+            }
+            Option::Some(
+                Stock {
+                    figi: tmi.figi,
+                    ticker: tmi.ticker,
+                    name: tmi.name,
+                    isin: tmi.isin?,
+                    min_price_increment: tmi.min_price_increment?,
+                    lot: tmi.lot,
+                    currency: tmi.currency?,
+                }
+            )
+        }).collect();
+        Ok(stocks)
     }
 }

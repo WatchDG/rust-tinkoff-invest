@@ -41,22 +41,22 @@ pub struct TinkoffUserAccounts {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct TinkoffInstrument {
+pub struct TinkoffMarketInstrument {
     pub figi: String,
     pub ticker: String,
     pub name: String,
     pub isin: Option<String>,
-    #[serde(rename(serialize = "minPriceIncrement", deserialize = "minPriceIncrement"))]
+    #[serde(rename(deserialize = "minPriceIncrement"))]
     pub min_price_increment: Option<f64>,
     pub lot: u64,
     pub currency: Option<Currency>,
-    #[serde(rename(serialize = "type", deserialize = "type"))]
+    #[serde(rename(deserialize = "type"))]
     pub type_: InstrumentType,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct TinkoffInstruments {
-    pub instruments: Vec<TinkoffInstrument>,
+    pub instruments: Vec<TinkoffMarketInstrument>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -65,5 +65,15 @@ pub struct TinkoffResponseData<P> {
     pub tracking_id: String,
     pub payload: P,
     pub status: String,
-    pub error: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct Stock {
+    pub figi: String,
+    pub ticker: String,
+    pub name: String,
+    pub isin: String,
+    pub min_price_increment: f64,
+    pub lot: u64,
+    pub currency: Currency,
 }
