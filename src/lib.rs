@@ -22,7 +22,7 @@ use tinkoff_invest_types::{
 mod request;
 mod types;
 
-use crate::request::{request_get, request_post};
+use crate::request::{request_get, request_post, Payload};
 use crate::types::Stock;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -143,8 +143,13 @@ impl TinkoffInvest {
             "price": price
         })
         .to_string();
-        let (status_code, _headers, body) =
-            request_post(&self.client, &uri, &self.auth, payload.as_ref()).await?;
+        let (status_code, _headers, body) = request_post(
+            &self.client,
+            &uri,
+            &self.auth,
+            Payload::Payload(payload.as_ref()),
+        )
+        .await?;
         if status_code != StatusCode::OK {
             let data = serde_json::from_slice::<ResponseData<ErrorPayload>>(body.as_ref())?;
             return Err(Box::new(std::io::Error::new(
@@ -154,5 +159,23 @@ impl TinkoffInvest {
         }
         let data = serde_json::from_slice::<ResponseData<PlacedLimitOrder>>(body.as_ref())?;
         Ok(data.payload)
+    }
+
+    pub async fn cancel_order(&self, order_id: &str) -> Result<()> {
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query("/openapi/orders/cancel?orderId=".to_owned() + order_id)
+            .build()?;
+        let (status_code, _headers, body) =
+            request_post(&self.client, &uri, &self.auth, Payload::None).await?;
+        if status_code != StatusCode::OK {
+            let data = serde_json::from_slice::<ResponseData<ErrorPayload>>(body.as_ref())?;
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                data.payload.message,
+            )));
+        }
+        Ok(())
     }
 }

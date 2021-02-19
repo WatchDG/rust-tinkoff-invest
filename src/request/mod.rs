@@ -7,6 +7,11 @@ use hyper::{
 };
 use hyper_tls::HttpsConnector;
 
+pub enum Payload<'a> {
+    None,
+    Payload(&'a str),
+}
+
 pub async fn request_get(
     client: &Client<HttpsConnector<HttpConnector>>,
     uri: &Uri,
@@ -30,17 +35,24 @@ pub async fn request_get(
     Ok((status, headers, body))
 }
 
-pub async fn request_post(
+pub async fn request_post<'a>(
     client: &Client<HttpsConnector<HttpConnector>>,
     uri: &Uri,
     auth: &str,
-    payload: &str,
+    payload: Payload<'a>,
 ) -> Result<(StatusCode, HeaderMap, BytesMut)> {
-    let request = Request::builder()
-        .method(Method::POST)
-        .uri(uri)
-        .header("Authorization", auth)
-        .body(Body::from(payload.to_owned()))?;
+    let request = match payload {
+        Payload::Payload(str) => Request::builder()
+            .method(Method::POST)
+            .uri(uri)
+            .header("Authorization", auth)
+            .body(Body::from(str.to_owned()))?,
+        Payload::None => Request::builder()
+            .method(Method::POST)
+            .uri(uri)
+            .header("Authorization", auth)
+            .body(Body::empty())?,
+    };
     let mut response = client.request(request).await?;
     let status = response.status();
     let headers = response.headers().to_owned();
