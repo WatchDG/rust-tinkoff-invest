@@ -23,7 +23,7 @@ mod request;
 mod types;
 
 use crate::request::{request_get, request_post, Payload};
-use crate::types::Stock;
+use crate::types::{Stock, StocksInfo};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -114,6 +114,11 @@ impl TinkoffInvest {
             })
             .collect();
         Ok(stocks)
+    }
+
+    /// Get stocks info
+    pub fn stocks_info(stocks: Vec<Stock>) -> StocksInfo {
+        StocksInfo::new(stocks)
     }
 
     /// Get active orders

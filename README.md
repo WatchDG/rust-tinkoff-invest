@@ -13,9 +13,14 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let token = "...";
     let tinkoff = TinkoffInvest::new(token);
     let stocks = tinkoff.get_stocks().await?;
-    for stock in stocks {
-        println!("figi: {} name: {}", stock.figi, stock.name);
-    }
+
+    let stocks_info = TinkoffInvest::stocks_info(stocks);
+
+    let stock_wfc = stocks_info.by_ticker("WFC").unwrap();
+    let stock_sber = stocks_info.by_ticker("SBER").unwrap();
+    println!("[{}] {}", &stock_wfc.figi, &stock_wfc.name);
+    println!("[{}] {}", &stock_sber.figi, &stock_sber.name);
+
     Ok(())
 }
 ```
