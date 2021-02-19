@@ -15,15 +15,15 @@ use hyper::{
 use hyper_tls::HttpsConnector;
 
 use tinkoff_invest_types::{
-    ErrorPayload, MarketInstrument, MarketInstrumentsPayload, OperationType, Order,
-    PlacedLimitOrder, ResponseData,
+    ErrorPayload, MarketInstrument, MarketInstrumentsPayload, OperationType, Order, PlacedOrder,
+    ResponseData,
 };
 
 mod request;
 mod types;
 
-use crate::request::{request_get, request_post, Payload};
-use crate::types::{Stock, StocksInfo};
+pub use crate::request::{request_get, request_post, Payload};
+pub use crate::types::{Stock, StocksInfo};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -97,19 +97,18 @@ impl TinkoffInvest {
         let market_instruments = self.stock_market_instruments().await?;
         let stocks = market_instruments
             .into_iter()
-            .filter_map(|tmi| {
-                if tmi.isin.is_none() || tmi.min_price_increment.is_none() || tmi.currency.is_none()
-                {
+            .filter_map(|mi| {
+                if mi.isin.is_none() || mi.min_price_increment.is_none() || mi.currency.is_none() {
                     return Option::None;
                 }
                 Option::Some(Stock {
-                    figi: tmi.figi,
-                    ticker: tmi.ticker,
-                    name: tmi.name,
-                    isin: tmi.isin?,
-                    min_price_increment: tmi.min_price_increment?,
-                    lot: tmi.lot,
-                    currency: tmi.currency?,
+                    figi: mi.figi,
+                    ticker: mi.ticker,
+                    name: mi.name,
+                    isin: mi.isin?,
+                    min_price_increment: mi.min_price_increment?,
+                    lot: mi.lot,
+                    currency: mi.currency?,
                 })
             })
             .collect();
@@ -136,7 +135,7 @@ impl TinkoffInvest {
         operation: OperationType,
         lots: u64,
         price: f64,
-    ) -> Result<PlacedLimitOrder> {
+    ) -> Result<PlacedOrder> {
         let uri = Uri::builder()
             .scheme("https")
             .authority("api-invest.tinkoff.ru")
@@ -162,10 +161,46 @@ impl TinkoffInvest {
                 data.payload.message,
             )));
         }
-        let data = serde_json::from_slice::<ResponseData<PlacedLimitOrder>>(body.as_ref())?;
+        let data = serde_json::from_slice::<ResponseData<PlacedOrder>>(body.as_ref())?;
         Ok(data.payload)
     }
 
+    /// Place market order
+    pub async fn market_order(
+        &self,
+        figi: &str,
+        operation: OperationType,
+        lots: u64,
+    ) -> Result<PlacedOrder> {
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query("/openapi/orders/market-order?figi=".to_owned() + figi)
+            .build()?;
+        let payload = json!({
+            "operation": operation,
+            "lots": lots
+        })
+        .to_string();
+        let (status_code, _headers, body) = request_post(
+            &self.client,
+            &uri,
+            &self.auth,
+            Payload::Payload(payload.as_ref()),
+        )
+        .await?;
+        if status_code != StatusCode::OK {
+            let data = serde_json::from_slice::<ResponseData<ErrorPayload>>(body.as_ref())?;
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                data.payload.message,
+            )));
+        }
+        let data = serde_json::from_slice::<ResponseData<PlacedOrder>>(body.as_ref())?;
+        Ok(data.payload)
+    }
+
+    /// Cancel order
     pub async fn cancel_order(&self, order_id: &str) -> Result<()> {
         let uri = Uri::builder()
             .scheme("https")
