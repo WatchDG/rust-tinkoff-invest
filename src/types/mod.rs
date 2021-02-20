@@ -26,7 +26,7 @@ impl StocksInfo {
         let mut hash_map_by_figi = HashMap::<String, Stock>::with_capacity(stocks.len());
         let mut hash_map_by_isin = HashMap::<String, Stock>::with_capacity(stocks.len());
 
-        stocks.clone().iter().for_each(|stock| {
+        stocks.iter().for_each(|stock| {
             hash_map_by_ticker.insert(stock.clone().ticker, stock.clone());
             hash_map_by_figi.insert(stock.clone().figi, stock.clone());
             hash_map_by_isin.insert(stock.clone().isin, stock.clone());
