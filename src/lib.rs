@@ -15,8 +15,9 @@ use hyper::{
 use hyper_tls::HttpsConnector;
 
 use tinkoff_invest_types::{
-    ErrorPayload, MarketInstrument, MarketInstrumentsPayload, OperationType, Order, PlacedOrder,
-    ResponseData,
+    CurrencyPortfolioPayload, CurrencyPortfolioPosition, ErrorPayload, MarketInstrument,
+    MarketInstrumentsPayload, OperationType, Order, PlacedOrder, PortfolioPayload,
+    PortfolioPosition, ResponseData,
 };
 
 mod request;
@@ -28,23 +29,54 @@ pub use crate::types::{Stock, StocksInfo};
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 lazy_static! {
-    static ref BASE_URI: &'static str = "https://api-invest.tinkoff.ru/openapi";
-    static ref GET_STOCKS_URI: Uri = (BASE_URI.to_owned() + "/market/stocks")
-        .parse::<Uri>()
+    static ref STOCKS_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/market/stocks")
+        .build()
         .unwrap();
-    static ref GET_BONDS_URI: Uri = (BASE_URI.to_owned() + "/market/bonds")
-        .parse::<Uri>()
+    static ref BONDS_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/market/bonds")
+        .build()
         .unwrap();
-    static ref GET_ETFS_URI: Uri = (BASE_URI.to_owned() + "/market/etfs")
-        .parse::<Uri>()
+    static ref ETFS_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/market/etfs")
+        .build()
         .unwrap();
-    static ref GET_CURRENCIES_URI: Uri = (BASE_URI.to_owned() + "/market/currencies")
-        .parse::<Uri>()
+    static ref CURRENCIES_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/market/currencies")
+        .build()
         .unwrap();
-    static ref GET_ACCOUNTS_URI: Uri = (BASE_URI.to_owned() + "/user/accounts")
-        .parse::<Uri>()
+    static ref ACCOUNTS_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/user/accounts")
+        .build()
         .unwrap();
-    static ref GET_ORDERS_URI: Uri = (BASE_URI.to_owned() + "/orders").parse::<Uri>().unwrap();
+    static ref ORDERS_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/orders")
+        .build()
+        .unwrap();
+    static ref PORTFOLIO_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/portfolio")
+        .build()
+        .unwrap();
+    static ref CURRENCY_PORTFOLIO_URI: Uri = Uri::builder()
+        .scheme("https")
+        .authority("api-invest.tinkoff.ru")
+        .path_and_query("/openapi/portfolio/currencies")
+        .build()
+        .unwrap();
 }
 
 pub struct TinkoffInvest {
@@ -54,8 +86,8 @@ pub struct TinkoffInvest {
 
 impl TinkoffInvest {
     pub fn new(token: &str) -> TinkoffInvest {
-        let https = HttpsConnector::new();
-        let client = Client::builder().build(https);
+        let https_connector = HttpsConnector::new();
+        let client = Client::builder().build(https_connector);
         let auth = "Bearer ".to_owned() + token;
         TinkoffInvest { client, auth }
     }
@@ -63,7 +95,7 @@ impl TinkoffInvest {
     /// Get stocks as market instruments
     pub async fn stock_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let (_status_code, _headers, body) =
-            request_get(&self.client, &GET_STOCKS_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &STOCKS_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
     }
@@ -71,7 +103,7 @@ impl TinkoffInvest {
     /// Get bonds as market instruments
     pub async fn bond_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let (_status_code, _headers, body) =
-            request_get(&self.client, &GET_BONDS_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &BONDS_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
     }
@@ -79,7 +111,7 @@ impl TinkoffInvest {
     /// Get etf as market instruments
     pub async fn etf_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let (_status_code, _headers, body) =
-            request_get(&self.client, &GET_ETFS_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &ETFS_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
     }
@@ -87,7 +119,7 @@ impl TinkoffInvest {
     /// Get currencies as market instruments
     pub async fn currency_market_instruments(&self) -> Result<Vec<MarketInstrument>> {
         let (_status_code, _headers, body) =
-            request_get(&self.client, &GET_CURRENCIES_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &CURRENCIES_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<MarketInstrumentsPayload>>(body.as_ref())?;
         Ok(data.payload.instruments)
     }
@@ -123,7 +155,7 @@ impl TinkoffInvest {
     /// Get active orders
     pub async fn orders(&self) -> Result<Vec<Order>> {
         let (_status_code, _headers, body) =
-            request_get(&self.client, &GET_ORDERS_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &ORDERS_URI, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<Vec<Order>>>(body.as_ref())?;
         Ok(data.payload)
     }
@@ -217,5 +249,21 @@ impl TinkoffInvest {
             )));
         }
         Ok(())
+    }
+
+    /// Get portfolio
+    pub async fn portfolio(&self) -> Result<Vec<PortfolioPosition>> {
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &PORTFOLIO_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<PortfolioPayload>>(body.as_ref())?;
+        Ok(data.payload.positions)
+    }
+
+    /// Get currency portfolio
+    pub async fn currency_portfolio(&self) -> Result<Vec<CurrencyPortfolioPosition>> {
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &CURRENCY_PORTFOLIO_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<CurrencyPortfolioPayload>>(body.as_ref())?;
+        Ok(data.payload.currencies)
     }
 }
