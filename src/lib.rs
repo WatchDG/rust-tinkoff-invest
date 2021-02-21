@@ -18,8 +18,8 @@ use hyper_tls::HttpsConnector;
 
 use tinkoff_invest_types::{
     CurrencyPortfolioPayload, CurrencyPortfolioPosition, ErrorPayload, MarketInstrument,
-    MarketInstrumentsPayload, Operation, OperationType, OperationsPayload, Order, PlacedOrder,
-    PortfolioPayload, PortfolioPosition, ResponseData,
+    MarketInstrumentsPayload, Operation, OperationType, OperationsPayload, Order, Orderbook,
+    PlacedOrder, PortfolioPayload, PortfolioPosition, ResponseData,
 };
 
 use std::fmt;
@@ -339,5 +339,29 @@ impl TinkoffInvest {
             request_get(&self.client, &uri, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<OperationsPayload>>(body.as_ref())?;
         Ok(data.payload.operations)
+    }
+
+    /// Get orderbook
+    pub async fn orderbook(&self, figi: &str, depth: usize) -> Result<Orderbook> {
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query(
+                "/openapi/market/orderbook?figi=".to_owned()
+                    + figi
+                    + "&depth="
+                    + depth.to_string().as_str(),
+            )
+            .build()?;
+        let (status_code, _headers, body) = request_get(&self.client, &uri, &self.auth).await?;
+        if status_code != StatusCode::OK {
+            let data = serde_json::from_slice::<ResponseData<ErrorPayload>>(body.as_ref())?;
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                data.payload.message,
+            )));
+        }
+        let data = serde_json::from_slice::<ResponseData<Orderbook>>(body.as_ref())?;
+        Ok(data.payload)
     }
 }
