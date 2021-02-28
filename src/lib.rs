@@ -16,11 +16,12 @@ use hyper::{
 };
 use hyper_tls::HttpsConnector;
 
+pub use tinkoff_invest_types::CandlestickResolution;
 use tinkoff_invest_types::{
-    CurrencyPortfolioPayload, CurrencyPortfolioPosition, ErrorPayload, MarketInstrument,
-    MarketInstrumentsPayload, Operation, OperationType, OperationsPayload, Order, Orderbook,
-    PlacedOrder, PortfolioPayload, PortfolioPosition, ResponseData, UserAccount,
-    UserAccountsPayload,
+    Candlestick, CandlesticksPayload, CurrencyPortfolioPayload, CurrencyPortfolioPosition,
+    ErrorPayload, MarketInstrument, MarketInstrumentsPayload, Operation, OperationType,
+    OperationsPayload, Order, Orderbook, PlacedOrder, PortfolioPayload, PortfolioPosition,
+    ResponseData, UserAccount, UserAccountsPayload,
 };
 
 use std::fmt;
@@ -348,5 +349,47 @@ impl TinkoffInvest {
         }
         let data = serde_json::from_slice::<ResponseData<Orderbook>>(body.as_ref())?;
         Ok(data.payload)
+    }
+
+    /// Get candlesticks
+    pub async fn candlesticks<Tz: TimeZone>(
+        &self,
+        from: DateTime<Tz>,
+        to: DateTime<Tz>,
+        figi: &str,
+        interval: CandlestickResolution,
+    ) -> Result<Vec<Candlestick>>
+    where
+        Tz::Offset: fmt::Display,
+    {
+        let from_datetime = percent_encode(
+            from.to_rfc3339_opts(SecondsFormat::Micros, false)
+                .as_bytes(),
+            NON_ALPHANUMERIC,
+        )
+        .to_string();
+        let to_datetime = percent_encode(
+            to.to_rfc3339_opts(SecondsFormat::Micros, false).as_bytes(),
+            NON_ALPHANUMERIC,
+        )
+        .to_string();
+        let path = "/openapi/market/candles?from=".to_owned()
+            + from_datetime.as_str()
+            + "&to="
+            + to_datetime.as_str()
+            + "&figi="
+            + figi
+            + "&interval="
+            + interval.to_string().as_str();
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query(path)
+            .build()
+            .unwrap();
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &uri, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<CandlesticksPayload>>(body.as_ref())?;
+        Ok(data.payload.candles)
     }
 }
