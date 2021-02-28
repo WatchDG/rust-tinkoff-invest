@@ -67,12 +67,6 @@ lazy_static! {
         .path_and_query("/openapi/user/accounts")
         .build()
         .unwrap();
-    static ref ORDERS_URI: Uri = Uri::builder()
-        .scheme("https")
-        .authority("api-invest.tinkoff.ru")
-        .path_and_query("/openapi/orders")
-        .build()
-        .unwrap();
 }
 
 pub struct TinkoffInvest {
@@ -157,9 +151,19 @@ impl TinkoffInvest {
     }
 
     /// Get active orders
-    pub async fn orders(&self) -> Result<Vec<Order>> {
+    pub async fn orders(&self, account_id: Option<&str>) -> Result<Vec<Order>> {
+        let mut path = "/openapi/orders".to_string();
+        if let Some(account_id) = account_id {
+            path += ("?brokerAccountId=".to_owned() + account_id).as_str();
+        }
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query(path)
+            .build()
+            .unwrap();
         let (_status_code, _headers, body) =
-            request_get(&self.client, &ORDERS_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &uri, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<Vec<Order>>>(body.as_ref())?;
         Ok(data.payload)
     }
@@ -171,11 +175,16 @@ impl TinkoffInvest {
         operation: OperationType,
         lots: u64,
         price: f64,
+        account_id: Option<&str>,
     ) -> Result<PlacedOrder> {
+        let mut path = "/openapi/orders/limit-order?figi=".to_owned() + figi;
+        if let Some(account_id) = account_id {
+            path += ("&brokerAccountId=".to_owned() + account_id).as_str();
+        }
         let uri = Uri::builder()
             .scheme("https")
             .authority("api-invest.tinkoff.ru")
-            .path_and_query("/openapi/orders/limit-order?figi=".to_owned() + figi)
+            .path_and_query(path)
             .build()?;
         let payload = json!({
             "operation": operation,
@@ -207,11 +216,16 @@ impl TinkoffInvest {
         figi: &str,
         operation: OperationType,
         lots: u64,
+        account_id: Option<&str>,
     ) -> Result<PlacedOrder> {
+        let mut path = "/openapi/orders/market-order?figi=".to_owned() + figi;
+        if let Some(account_id) = account_id {
+            path += ("&brokerAccountId=".to_owned() + account_id).as_str();
+        }
         let uri = Uri::builder()
             .scheme("https")
             .authority("api-invest.tinkoff.ru")
-            .path_and_query("/openapi/orders/market-order?figi=".to_owned() + figi)
+            .path_and_query(path)
             .build()?;
         let payload = json!({
             "operation": operation,
@@ -237,11 +251,15 @@ impl TinkoffInvest {
     }
 
     /// Cancel order
-    pub async fn cancel_order(&self, order_id: &str) -> Result<()> {
+    pub async fn cancel_order(&self, order_id: &str, account_id: Option<&str>) -> Result<()> {
+        let mut path = "/openapi/orders/cancel?orderId=".to_owned() + order_id;
+        if let Some(account_id) = account_id {
+            path += ("&brokerAccountId=".to_owned() + account_id).as_str();
+        }
         let uri = Uri::builder()
             .scheme("https")
             .authority("api-invest.tinkoff.ru")
-            .path_and_query("/openapi/orders/cancel?orderId=".to_owned() + order_id)
+            .path_and_query(path)
             .build()?;
         let (status_code, _headers, body) =
             request_post(&self.client, &uri, &self.auth, Payload::None).await?;
