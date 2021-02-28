@@ -19,7 +19,8 @@ use hyper_tls::HttpsConnector;
 use tinkoff_invest_types::{
     CurrencyPortfolioPayload, CurrencyPortfolioPosition, ErrorPayload, MarketInstrument,
     MarketInstrumentsPayload, Operation, OperationType, OperationsPayload, Order, Orderbook,
-    PlacedOrder, PortfolioPayload, PortfolioPosition, ResponseData,
+    PlacedOrder, PortfolioPayload, PortfolioPosition, ResponseData, UserAccount,
+    UserAccountsPayload,
 };
 
 use std::fmt;
@@ -96,6 +97,14 @@ impl TinkoffInvest {
         let client = Client::builder().build(https_connector);
         let auth = "Bearer ".to_owned() + token;
         TinkoffInvest { client, auth }
+    }
+
+    /// Get accounts
+    pub async fn accounts(&self) -> Result<Vec<UserAccount>> {
+        let (_status_code, _headers, body) =
+            request_get(&self.client, &ACCOUNTS_URI, self.auth.as_str()).await?;
+        let data = serde_json::from_slice::<ResponseData<UserAccountsPayload>>(body.as_ref())?;
+        Ok(data.payload.accounts)
     }
 
     /// Get stocks as market instruments
@@ -279,62 +288,38 @@ impl TinkoffInvest {
         from: DateTime<Tz>,
         to: DateTime<Tz>,
         figi: Option<&str>,
+        account_id: Option<&str>,
     ) -> Result<Vec<Operation>>
     where
         Tz::Offset: fmt::Display,
     {
-        let uri = match figi {
-            Some(figi) => {
-                let from_datetime = percent_encode(
-                    from.to_rfc3339_opts(SecondsFormat::Micros, false)
-                        .as_bytes(),
-                    NON_ALPHANUMERIC,
-                )
-                .to_string();
-                let to_datetime = percent_encode(
-                    to.to_rfc3339_opts(SecondsFormat::Micros, false).as_bytes(),
-                    NON_ALPHANUMERIC,
-                )
-                .to_string();
-                Uri::builder()
-                    .scheme("https")
-                    .authority("api-invest.tinkoff.ru")
-                    .path_and_query(
-                        "/openapi/operations?from=".to_owned()
-                            + from_datetime.as_str()
-                            + "&to="
-                            + to_datetime.as_str()
-                            + "&figi="
-                            + figi,
-                    )
-                    .build()
-                    .unwrap()
-            }
-            None => {
-                let from_datetime = percent_encode(
-                    from.to_rfc3339_opts(SecondsFormat::Micros, false)
-                        .as_bytes(),
-                    NON_ALPHANUMERIC,
-                )
-                .to_string();
-                let to_datetime = percent_encode(
-                    to.to_rfc3339_opts(SecondsFormat::Micros, false).as_bytes(),
-                    NON_ALPHANUMERIC,
-                )
-                .to_string();
-                Uri::builder()
-                    .scheme("https")
-                    .authority("api-invest.tinkoff.ru")
-                    .path_and_query(
-                        "/openapi/operations?from=".to_owned()
-                            + from_datetime.as_str()
-                            + "&to="
-                            + to_datetime.as_str(),
-                    )
-                    .build()
-                    .unwrap()
-            }
-        };
+        let from_datetime = percent_encode(
+            from.to_rfc3339_opts(SecondsFormat::Micros, false)
+                .as_bytes(),
+            NON_ALPHANUMERIC,
+        )
+        .to_string();
+        let to_datetime = percent_encode(
+            to.to_rfc3339_opts(SecondsFormat::Micros, false).as_bytes(),
+            NON_ALPHANUMERIC,
+        )
+        .to_string();
+        let mut path = "/openapi/operations?from=".to_owned()
+            + from_datetime.as_str()
+            + "&to="
+            + to_datetime.as_str();
+        if let Some(figi) = figi {
+            path += ("&figi=".to_owned() + figi).as_str();
+        }
+        if let Some(account_id) = account_id {
+            path += ("&brokerAccountId=".to_owned() + account_id).as_str();
+        }
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query(path)
+            .build()
+            .unwrap();
         let (_status_code, _headers, body) =
             request_get(&self.client, &uri, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<OperationsPayload>>(body.as_ref())?;
