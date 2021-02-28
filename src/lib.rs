@@ -73,18 +73,6 @@ lazy_static! {
         .path_and_query("/openapi/orders")
         .build()
         .unwrap();
-    static ref PORTFOLIO_URI: Uri = Uri::builder()
-        .scheme("https")
-        .authority("api-invest.tinkoff.ru")
-        .path_and_query("/openapi/portfolio")
-        .build()
-        .unwrap();
-    static ref CURRENCY_PORTFOLIO_URI: Uri = Uri::builder()
-        .scheme("https")
-        .authority("api-invest.tinkoff.ru")
-        .path_and_query("/openapi/portfolio/currencies")
-        .build()
-        .unwrap();
 }
 
 pub struct TinkoffInvest {
@@ -268,17 +256,40 @@ impl TinkoffInvest {
     }
 
     /// Get portfolio
-    pub async fn portfolio(&self) -> Result<Vec<PortfolioPosition>> {
+    pub async fn portfolio(&self, account_id: Option<&str>) -> Result<Vec<PortfolioPosition>> {
+        let mut path = "/openapi/portfolio".to_string();
+        if let Some(account_id) = account_id {
+            path += ("?brokerAccountId=".to_owned() + account_id).as_str();
+        }
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query(path)
+            .build()
+            .unwrap();
         let (_status_code, _headers, body) =
-            request_get(&self.client, &PORTFOLIO_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &uri, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<PortfolioPayload>>(body.as_ref())?;
         Ok(data.payload.positions)
     }
 
     /// Get currency portfolio
-    pub async fn currency_portfolio(&self) -> Result<Vec<CurrencyPortfolioPosition>> {
+    pub async fn currency_portfolio(
+        &self,
+        account_id: Option<&str>,
+    ) -> Result<Vec<CurrencyPortfolioPosition>> {
+        let mut path = "/openapi/portfolio/currencies".to_string();
+        if let Some(account_id) = account_id {
+            path += ("?brokerAccountId=".to_owned() + account_id).as_str();
+        }
+        let uri = Uri::builder()
+            .scheme("https")
+            .authority("api-invest.tinkoff.ru")
+            .path_and_query(path)
+            .build()
+            .unwrap();
         let (_status_code, _headers, body) =
-            request_get(&self.client, &CURRENCY_PORTFOLIO_URI, self.auth.as_str()).await?;
+            request_get(&self.client, &uri, self.auth.as_str()).await?;
         let data = serde_json::from_slice::<ResponseData<CurrencyPortfolioPayload>>(body.as_ref())?;
         Ok(data.payload.currencies)
     }
