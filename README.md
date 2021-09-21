@@ -12,7 +12,7 @@ use std::error::Error;
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let token = "...";
     let tinkoff = TinkoffInvest::new(token);
-    let stocks = tinkoff.get_stocks().await?;
+    let stocks = tinkoff.stocks().await?;
 
     let stocks_info = TinkoffInvest::stocks_info(stocks);
 
