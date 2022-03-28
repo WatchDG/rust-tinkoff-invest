@@ -1,4 +1,4 @@
-use crate::{enums, types};
+use crate::types;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Figi(String);
@@ -22,44 +22,8 @@ impl Into<String> for Figi {
     }
 }
 
-impl Into<Figi> for types::Share {
+impl Into<Figi> for types::MarketInstrument {
     fn into(self) -> Figi {
         self.figi
-    }
-}
-
-impl Into<Figi> for &types::Share {
-    fn into(self) -> Figi {
-        self.figi.clone()
-    }
-}
-
-impl Into<Figi> for types::Currency {
-    fn into(self) -> Figi {
-        self.figi
-    }
-}
-
-impl Into<Figi> for &types::Currency {
-    fn into(self) -> Figi {
-        self.figi.clone()
-    }
-}
-
-impl Into<Figi> for enums::MarketInstrument {
-    fn into(self) -> Figi {
-        match self {
-            enums::MarketInstrument::Share(share) => share.into(),
-            enums::MarketInstrument::Currency(currency) => currency.into(),
-        }
-    }
-}
-
-impl Into<Figi> for &enums::MarketInstrument {
-    fn into(self) -> Figi {
-        match self {
-            enums::MarketInstrument::Share(share) => share.into(),
-            enums::MarketInstrument::Currency(currency) => currency.into(),
-        }
     }
 }

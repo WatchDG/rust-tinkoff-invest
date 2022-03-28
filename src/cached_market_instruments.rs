@@ -1,9 +1,8 @@
-use crate::types::{Figi, Ticker};
-use crate::{enums, types};
+use crate::types;
 use std::collections::{HashMap, HashSet};
 
 pub struct CachedMarketInstruments {
-    hash_map_by_figi: HashMap<types::Figi, enums::MarketInstrument>,
+    hash_map_by_figi: HashMap<types::Figi, types::MarketInstrument>,
     hash_map_link_ticker_figi: HashMap<types::Ticker, HashSet<types::Figi>>,
 }
 
@@ -17,11 +16,12 @@ impl CachedMarketInstruments {
     }
 
     #[inline]
-    pub fn insert(&mut self, market_instrument: &enums::MarketInstrument) -> &Self {
-        let figi: Figi = market_instrument.into();
-        let ticker: Ticker = market_instrument.into();
+    pub fn insert(&mut self, market_instrument: &types::MarketInstrument) -> &Self {
+        let figi = market_instrument.figi.clone();
+        let ticker = market_instrument.ticker.clone();
         self.hash_map_by_figi
             .insert(figi.clone(), market_instrument.clone());
+
         if let Some(hash_set) = self.hash_map_link_ticker_figi.get_mut(&ticker) {
             hash_set.insert(figi.clone());
         } else {
@@ -29,11 +29,12 @@ impl CachedMarketInstruments {
             hash_set.insert(figi.clone());
             self.hash_map_link_ticker_figi.insert(ticker, hash_set);
         }
+
         self
     }
 
     #[inline]
-    pub fn append(&mut self, market_instruments: Vec<enums::MarketInstrument>) -> &Self {
+    pub fn append(&mut self, market_instruments: Vec<types::MarketInstrument>) -> &Self {
         market_instruments.iter().for_each(|x| {
             self.insert(x);
         });
@@ -41,7 +42,7 @@ impl CachedMarketInstruments {
     }
 
     #[inline]
-    pub fn by_figi<T>(&self, value: T) -> Option<enums::MarketInstrument>
+    pub fn by_figi<T>(&self, value: T) -> Option<types::MarketInstrument>
     where
         T: Into<types::Figi>,
     {
@@ -50,7 +51,7 @@ impl CachedMarketInstruments {
     }
 
     #[inline]
-    pub fn by_ticker<T>(&self, value: T) -> Option<Vec<enums::MarketInstrument>>
+    pub fn by_ticker<T>(&self, value: T) -> Option<Vec<types::MarketInstrument>>
     where
         T: Into<types::Ticker>,
     {

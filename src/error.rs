@@ -10,8 +10,8 @@ pub enum TinkoffInvestError {
     MarketDataServiceClientNotInit,
     OperationsServiceClientNotInit,
     OrdersServiceClientNotInit,
-    CanNotConvertToCurrency,
-    CanNotConvertToShare,
+    MarketInstrumentKindNotCurrency,
+    MarketInstrumentKindNotShare,
 }
 
 impl Display for TinkoffInvestError {
@@ -38,11 +38,11 @@ impl Display for TinkoffInvestError {
             TinkoffInvestError::OrdersServiceClientNotInit => {
                 write!(f, "{}", "Orders service client not init.")
             }
-            TinkoffInvestError::CanNotConvertToCurrency => {
-                write!(f, "{}", "Can not convert to currency.")
+            TinkoffInvestError::MarketInstrumentKindNotCurrency => {
+                write!(f, "{}", "")
             }
-            TinkoffInvestError::CanNotConvertToShare => {
-                write!(f, "{}", "Can not convert to share.")
+            TinkoffInvestError::MarketInstrumentKindNotShare => {
+                write!(f, "{}", "")
             }
         }
     }

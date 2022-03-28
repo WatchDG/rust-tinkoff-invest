@@ -1,4 +1,3 @@
-use std::convert::TryInto;
 use std::error::Error;
 use uuid::Uuid;
 
@@ -195,7 +194,27 @@ where
         Ok(accounts.iter().map(|v| v.into()).collect())
     }
 
-    pub async fn shares(&mut self) -> Result<Vec<types::Share>, Box<dyn Error>> {
+    pub async fn market_instruments(
+        &mut self,
+        instrument_kind: enums::MarketInstrumentKind,
+    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+        match instrument_kind {
+            enums::MarketInstrumentKind::Share => self.shares().await,
+            enums::MarketInstrumentKind::Currency => self.currencies().await,
+        }
+    }
+
+    pub async fn market_instrument(
+        &mut self,
+        instrument: &types::MarketInstrument,
+    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>> {
+        match instrument.kind {
+            enums::MarketInstrumentKind::Share => self.share(instrument).await,
+            enums::MarketInstrumentKind::Currency => self.currency(instrument).await,
+        }
+    }
+
+    pub async fn shares(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
             .as_mut()
@@ -203,27 +222,28 @@ where
         let mut request = InstrumentsRequest::default();
         request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let shares = client.shares(request).await?.into_inner().instruments;
-        Ok(shares.iter().map(|v| v.into()).collect())
+        Ok(shares.iter().map(|v| v.clone().into()).collect())
     }
 
-    pub async fn share<T>(&mut self, share: T) -> Result<Option<types::Share>, Box<dyn Error>>
-    where
-        T: TryInto<types::Share>,
-        <T as TryInto<types::Share>>::Error: 'static + std::error::Error,
-    {
-        let share: types::Share = share.try_into()?;
+    pub async fn share(
+        &mut self,
+        instrument: &types::MarketInstrument,
+    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>> {
+        if instrument.kind != enums::MarketInstrumentKind::Share {
+            return Err(TinkoffInvestError::MarketInstrumentKindNotShare.into());
+        }
         let client = self
             .instruments_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut request = InstrumentRequest::default();
+        request.id = instrument.figi.clone().into();
         request.set_id_type(InstrumentIdType::Figi);
-        request.id = share.figi.into();
         let share = client.share_by(request).await?.into_inner().instrument;
-        Ok(share.as_ref().map(|x| x.into()))
+        Ok(share.as_ref().map(|x| x.clone().into()))
     }
 
-    pub async fn currencies(&mut self) -> Result<Vec<types::Currency>, Box<dyn Error>> {
+    pub async fn currencies(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
             .as_mut()
@@ -231,27 +251,25 @@ where
         let mut request = InstrumentsRequest::default();
         request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let currencies = client.currencies(request).await?.into_inner().instruments;
-        Ok(currencies.iter().map(|v| v.into()).collect())
+        Ok(currencies.iter().map(|v| v.clone().into()).collect())
     }
 
-    pub async fn currency<T>(
+    pub async fn currency(
         &mut self,
-        currency: T,
-    ) -> Result<Option<types::Currency>, Box<dyn Error>>
-    where
-        T: TryInto<types::Currency>,
-        <T as TryInto<types::Currency>>::Error: 'static + std::error::Error,
-    {
-        let currency: types::Currency = currency.try_into()?;
+        instrument: &types::MarketInstrument,
+    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>> {
+        if instrument.kind != enums::MarketInstrumentKind::Currency {
+            return Err(TinkoffInvestError::MarketInstrumentKindNotCurrency.into());
+        }
         let client = self
             .instruments_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut request = InstrumentRequest::default();
+        request.id = instrument.figi.clone().into();
         request.set_id_type(InstrumentIdType::Figi);
-        request.id = currency.figi.into();
         let currency = client.currency_by(request).await?.into_inner().instrument;
-        Ok(currency.as_ref().map(|x| x.into()))
+        Ok(currency.as_ref().map(|x| x.clone().into()))
     }
 
     pub async fn trading_status<T>(
