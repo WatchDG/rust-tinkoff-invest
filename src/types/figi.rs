@@ -1,24 +1,24 @@
-// pub type Figi = String;
 use crate::{enums, types};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Figi(String);
 
-impl From<&str> for Figi {
-    fn from(string: &str) -> Self {
-        Self(string.into())
+impl Figi {
+    #[inline]
+    pub fn new(figi: String) -> Self {
+        Self(figi)
     }
 }
 
-impl From<String> for Figi {
-    fn from(string: String) -> Self {
-        Self(string)
+impl Into<Figi> for String {
+    fn into(self) -> Figi {
+        Figi(self)
     }
 }
 
-impl From<Figi> for String {
-    fn from(figi: Figi) -> Self {
-        figi.0
+impl Into<String> for Figi {
+    fn into(self) -> String {
+        self.0
     }
 }
 

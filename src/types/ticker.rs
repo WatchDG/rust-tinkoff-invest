@@ -10,15 +10,15 @@ impl Ticker {
     }
 }
 
-impl From<&str> for Ticker {
-    fn from(string: &str) -> Self {
-        Self(string.into())
+impl Into<Ticker> for String {
+    fn into(self) -> Ticker {
+        Ticker(self)
     }
 }
 
-impl From<String> for Ticker {
-    fn from(string: String) -> Self {
-        Self(string)
+impl Into<String> for Ticker {
+    fn into(self) -> String {
+        self.0
     }
 }
 
