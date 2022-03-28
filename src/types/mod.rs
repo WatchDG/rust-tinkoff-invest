@@ -1,54 +1,23 @@
-use std::collections::HashMap;
-use tinkoff_invest_types::Currency;
+mod account;
+mod candlestick;
+mod currency;
+mod datetime;
+mod figi;
+mod money;
+mod operation;
+mod operation_trade;
+mod order;
+mod share;
+mod ticker;
 
-#[derive(Debug, Clone)]
-pub struct Stock {
-    pub figi: String,
-    pub ticker: String,
-    pub name: String,
-    pub isin: String,
-    pub min_price_increment: f64,
-    pub lot: u64,
-    pub currency: Currency,
-}
-
-#[derive(Debug, Clone)]
-pub struct StocksInfo {
-    stocks: Vec<Stock>,
-    hash_map_by_ticker: HashMap<String, Stock>,
-    hash_map_by_figi: HashMap<String, Stock>,
-    hash_map_by_isin: HashMap<String, Stock>,
-}
-
-impl StocksInfo {
-    pub fn new(stocks: Vec<Stock>) -> StocksInfo {
-        let mut hash_map_by_ticker = HashMap::<String, Stock>::with_capacity(stocks.len());
-        let mut hash_map_by_figi = HashMap::<String, Stock>::with_capacity(stocks.len());
-        let mut hash_map_by_isin = HashMap::<String, Stock>::with_capacity(stocks.len());
-
-        stocks.iter().for_each(|stock| {
-            hash_map_by_ticker.insert(stock.clone().ticker, stock.clone());
-            hash_map_by_figi.insert(stock.clone().figi, stock.clone());
-            hash_map_by_isin.insert(stock.clone().isin, stock.clone());
-        });
-
-        StocksInfo {
-            stocks,
-            hash_map_by_ticker,
-            hash_map_by_figi,
-            hash_map_by_isin,
-        }
-    }
-
-    pub fn by_ticker(&self, ticker: &str) -> Option<&Stock> {
-        self.hash_map_by_ticker.get(ticker)
-    }
-
-    pub fn by_figi(&self, figi: &str) -> Option<&Stock> {
-        self.hash_map_by_figi.get(figi)
-    }
-
-    pub fn by_isin(&self, isin: &str) -> Option<&Stock> {
-        self.hash_map_by_isin.get(isin)
-    }
-}
+pub use account::Account;
+pub use candlestick::Candlestick;
+pub use currency::Currency;
+pub use datetime::DateTime;
+pub use figi::Figi;
+pub use money::{Money, MoneyValue};
+pub use operation::Operation;
+pub use operation_trade::OperationTrade;
+pub use order::Order;
+pub use share::Share;
+pub use ticker::Ticker;

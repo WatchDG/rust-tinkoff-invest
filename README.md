@@ -1,25 +1,19 @@
 # rust-tinkoff-invest
 
-## get stocks
+DO NOT use for production
+
+## get accounts
 
 ```rust
-extern crate tinkoff_invest;
-
 use tinkoff_invest::TinkoffInvest;
-use std::error::Error;
 
 #[tokio::main()]
-async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    let tinkoff = TinkoffInvest::new(token);
-    let stocks = tinkoff.stocks().await?;
+    let mut tinkoff = TinkoffInvest::new(token.into())?;
 
-    let stocks_info = TinkoffInvest::stocks_info(stocks);
-
-    let stock_wfc = stocks_info.by_ticker("WFC").unwrap();
-    let stock_sber = stocks_info.by_ticker("SBER").unwrap();
-    println!("[{}] {}", &stock_wfc.figi, &stock_wfc.name);
-    println!("[{}] {}", &stock_sber.figi, &stock_sber.name);
+    let accounts = tinkoff.accounts().await?;
+    println!("accounts: {:?}", accounts);
 
     Ok(())
 }
