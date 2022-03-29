@@ -15,7 +15,7 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
-use crate::{enums, types, TinkoffInvestError, TinkoffInvestInterceptor};
+use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 
 pub struct TinkoffInvestBuilder<I>
 where
@@ -204,11 +204,14 @@ where
         }
     }
 
-    pub async fn market_instrument(
+    pub async fn market_instrument<T>(
         &mut self,
-        instrument: &types::MarketInstrument,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>> {
-        match instrument.kind {
+        instrument: T,
+    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    where
+        T: traits::ToMarketInstrumentKind + traits::ToFigi,
+    {
+        match instrument.to_market_instrument_kind() {
             enums::MarketInstrumentKind::Share => self.share(instrument).await,
             enums::MarketInstrumentKind::Currency => self.currency(instrument).await,
         }
@@ -225,11 +228,14 @@ where
         Ok(shares.iter().map(|v| v.clone().into()).collect())
     }
 
-    pub async fn share(
+    pub async fn share<T>(
         &mut self,
-        instrument: &types::MarketInstrument,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>> {
-        if instrument.kind != enums::MarketInstrumentKind::Share {
+        instrument: T,
+    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    where
+        T: traits::ToMarketInstrumentKind + traits::ToFigi,
+    {
+        if instrument.to_market_instrument_kind() != enums::MarketInstrumentKind::Share {
             return Err(TinkoffInvestError::MarketInstrumentKindNotShare.into());
         }
         let client = self
@@ -237,7 +243,7 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut request = InstrumentRequest::default();
-        request.id = instrument.figi.clone().into();
+        request.id = instrument.to_figi().into();
         request.set_id_type(InstrumentIdType::Figi);
         let share = client.share_by(request).await?.into_inner().instrument;
         Ok(share.as_ref().map(|x| x.clone().into()))
@@ -254,11 +260,14 @@ where
         Ok(currencies.iter().map(|v| v.clone().into()).collect())
     }
 
-    pub async fn currency(
+    pub async fn currency<T>(
         &mut self,
-        instrument: &types::MarketInstrument,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>> {
-        if instrument.kind != enums::MarketInstrumentKind::Currency {
+        instrument: T,
+    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    where
+        T: traits::ToMarketInstrumentKind + traits::ToFigi,
+    {
+        if instrument.to_market_instrument_kind() != enums::MarketInstrumentKind::Currency {
             return Err(TinkoffInvestError::MarketInstrumentKindNotCurrency.into());
         }
         let client = self
@@ -266,7 +275,7 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut request = InstrumentRequest::default();
-        request.id = instrument.figi.clone().into();
+        request.id = instrument.to_figi().into();
         request.set_id_type(InstrumentIdType::Figi);
         let currency = client.currency_by(request).await?.into_inner().instrument;
         Ok(currency.as_ref().map(|x| x.clone().into()))
@@ -277,9 +286,9 @@ where
         instrument: T,
     ) -> Result<enums::TradingStatus, Box<dyn Error>>
     where
-        T: Into<types::Figi>,
+        T: traits::ToFigi,
     {
-        let figi = instrument.into();
+        let figi = instrument.to_figi();
         let client = self
             .market_data_service_client
             .as_mut()
@@ -293,15 +302,18 @@ where
             .into())
     }
 
-    pub async fn candlesticks(
+    pub async fn candlesticks<T>(
         &mut self,
-        figi: types::Figi,
+        instrument: T,
         from: Option<types::DateTime>,
         to: Option<types::DateTime>,
         interval: enums::CandlestickInterval,
-    ) -> Result<Vec<types::Candlestick>, Box<dyn Error>> {
+    ) -> Result<Vec<types::Candlestick>, Box<dyn Error>>
+    where
+        T: traits::ToFigi,
+    {
         let mut request = GetCandlesRequest::default();
-        request.figi = figi.into();
+        request.figi = instrument.to_figi().into();
         request.from = from.map(|x| x.into());
         request.to = to.map(|x| x.into());
         request.set_interval(interval.into());
@@ -314,15 +326,18 @@ where
     }
 
     #[inline]
-    pub async fn operations_on_account(
+    pub async fn operations_on_account<T, K>(
         &mut self,
-        account: &types::Account,
-        figi: types::Figi,
+        account: T,
+        instrument: K,
         state: enums::OperationState,
         from: Option<types::DateTime>,
         to: Option<types::DateTime>,
-    ) -> Result<Vec<types::Operation>, Box<dyn Error>> {
-        let figi = figi.into();
+    ) -> Result<Vec<types::Operation>, Box<dyn Error>>
+    where
+        T: traits::ToAccountId,
+        K: traits::ToFigi,
+    {
         let from: Option<tinkoff_invest_types::extra::Timestamp> = from.map(|x| x.into());
         let to: Option<tinkoff_invest_types::extra::Timestamp> = to.map(|x| x.into());
         let client = self
@@ -330,8 +345,8 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let mut request = OperationsRequest {
-            account_id: account.id.clone(),
-            figi,
+            account_id: account.to_account_id(),
+            figi: instrument.to_figi().into(),
             state: 0,
             from,
             to,
@@ -345,37 +360,44 @@ where
         Ok(operations.iter().map(|v| v.into()).collect())
     }
 
-    pub async fn operations(
+    pub async fn operations<T>(
         &mut self,
-        figi: types::Figi,
+        instrument: T,
         state: enums::OperationState,
         from: Option<types::DateTime>,
         to: Option<types::DateTime>,
-    ) -> Result<Vec<types::Operation>, Box<dyn Error>> {
+    ) -> Result<Vec<types::Operation>, Box<dyn Error>>
+    where
+        T: traits::ToFigi,
+    {
         let account = self
             .account
             .as_ref()
             .ok_or(TinkoffInvestError::AccountNotSet)?
             .clone();
-        self.operations_on_account(&account, figi, state, from, to)
+        self.operations_on_account(&account, instrument, state, from, to)
             .await
     }
 
     #[inline]
-    pub async fn limit_order_on_account(
+    pub async fn limit_order_on_account<T, K>(
         &mut self,
-        account: &types::Account,
-        figi: types::Figi,
+        account: T,
+        instrument: K,
         direction: enums::OrderDirection,
         quantity: u64,
         price: types::MoneyValue,
         order_id: Option<String>,
-    ) -> Result<types::Order, Box<dyn Error>> {
+    ) -> Result<types::Order, Box<dyn Error>>
+    where
+        T: traits::ToAccountId,
+        K: traits::ToFigi,
+    {
         let order_id = order_id.unwrap_or_else(|| Uuid::new_v4().to_string());
         let mut request = PostOrderRequest::default();
         request.order_id = order_id;
-        request.account_id = account.id.clone();
-        request.figi = figi.into();
+        request.account_id = account.to_account_id();
+        request.figi = instrument.to_figi().into();
         request.quantity = quantity as i64;
         request.price = Some(price.into());
         request.set_direction(direction.into());
@@ -387,20 +409,23 @@ where
         Ok(client.post_order(request).await?.into_inner().into())
     }
 
-    pub async fn limit_order(
+    pub async fn limit_order<T>(
         &mut self,
-        figi: types::Figi,
+        instrument: T,
         direction: enums::OrderDirection,
         quantity: u64,
         price: types::MoneyValue,
         order_id: Option<String>,
-    ) -> Result<types::Order, Box<dyn Error>> {
+    ) -> Result<types::Order, Box<dyn Error>>
+    where
+        T: traits::ToFigi,
+    {
         let account = self
             .account
             .as_ref()
             .ok_or(TinkoffInvestError::AccountNotSet)?
             .clone();
-        self.limit_order_on_account(&account, figi, direction, quantity, price, order_id)
+        self.limit_order_on_account(&account, instrument, direction, quantity, price, order_id)
             .await
     }
 }

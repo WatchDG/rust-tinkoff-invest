@@ -3,6 +3,7 @@ mod client;
 pub mod enums;
 mod error;
 mod interceptor;
+pub mod traits;
 pub mod types;
 
 pub use cached_market_instruments::CachedMarketInstruments;

@@ -1,4 +1,4 @@
-use crate::types;
+use crate::{traits, types};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Figi(String);
@@ -25,5 +25,11 @@ impl Into<String> for Figi {
 impl Into<Figi> for types::MarketInstrument {
     fn into(self) -> Figi {
         self.figi
+    }
+}
+
+impl traits::ToFigi for &Figi {
+    fn to_figi(&self) -> Figi {
+        Figi(self.0.clone())
     }
 }

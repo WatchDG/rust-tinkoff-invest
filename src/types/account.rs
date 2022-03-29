@@ -1,6 +1,6 @@
 use tinkoff_invest_types;
 
-use crate::{enums, types};
+use crate::{enums, traits, types};
 
 #[derive(Debug, Clone)]
 pub struct Account {
@@ -48,5 +48,11 @@ impl Into<Account> for &tinkoff_invest_types::Account {
             opened_datetime: self.opened_date.as_ref().map(|x| x.into()),
             closed_datetime: self.closed_date.as_ref().map(|x| x.into()),
         }
+    }
+}
+
+impl traits::ToAccountId for &Account {
+    fn to_account_id(&self) -> String {
+        self.id.clone()
     }
 }

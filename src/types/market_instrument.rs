@@ -1,6 +1,8 @@
 use tinkoff_invest_types as tit;
 
-use crate::{enums, types};
+use crate::enums::MarketInstrumentKind;
+use crate::types::Figi;
+use crate::{enums, traits, types};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MarketInstrument {
@@ -58,5 +60,17 @@ impl Into<MarketInstrument> for tit::Share {
             is_buy_available: self.buy_available_flag,
             is_sell_available: self.sell_available_flag,
         }
+    }
+}
+
+impl traits::ToFigi for &MarketInstrument {
+    fn to_figi(&self) -> Figi {
+        self.figi.clone()
+    }
+}
+
+impl traits::ToMarketInstrumentKind for &MarketInstrument {
+    fn to_market_instrument_kind(&self) -> MarketInstrumentKind {
+        self.kind.clone()
     }
 }
