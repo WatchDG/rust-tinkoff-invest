@@ -1,6 +1,6 @@
 [package]
 name = "tinkoff-invest"
-version = "2.1.1"
+version = "2.2.0"
 authors = ["WatchDG <baranov@w3m.co>"]
 license = "MIT OR Apache-2.0"
 description = "tinkoff invest library"

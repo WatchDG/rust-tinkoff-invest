@@ -11,7 +11,7 @@ mod order;
 mod ticker;
 
 pub use account::Account;
-pub use candlestick::Candlestick;
+pub use candlestick::{Candlestick, StrictCandlestick};
 pub use datetime::DateTime;
 pub use figi::Figi;
 pub use isin::Isin;

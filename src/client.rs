@@ -305,24 +305,33 @@ where
     pub async fn candlesticks<T>(
         &mut self,
         instrument: T,
+        interval: enums::CandlestickInterval,
         from: Option<types::DateTime>,
         to: Option<types::DateTime>,
-        interval: enums::CandlestickInterval,
     ) -> Result<Vec<types::Candlestick>, Box<dyn Error>>
     where
         T: traits::ToFigi,
     {
+        let figi = instrument.to_figi();
         let mut request = GetCandlesRequest::default();
-        request.figi = instrument.to_figi().into();
+        request.figi = figi.clone().into();
         request.from = from.map(|x| x.into());
         request.to = to.map(|x| x.into());
-        request.set_interval(interval.into());
+        request.set_interval(interval.clone().into());
         let client = self
             .market_data_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
-        Ok(candlesticks.iter().map(|v| v.into()).collect())
+        Ok(candlesticks
+            .iter()
+            .map(|x| {
+                let mut candlestick: types::Candlestick = x.clone().into();
+                candlestick.figi = Some(figi.clone());
+                candlestick.interval = Some(interval.clone());
+                candlestick
+            })
+            .collect())
     }
 
     #[inline]

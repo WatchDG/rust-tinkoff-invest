@@ -12,6 +12,13 @@ pub enum TinkoffInvestError {
     OrdersServiceClientNotInit,
     MarketInstrumentKindNotCurrency,
     MarketInstrumentKindNotShare,
+    CandlestickFigiNotSet,
+    CandlestickIntervalNotSet,
+    CandlestickPriceOpenNotSet,
+    CandlestickPriceHighNotSet,
+    CandlestickPriceLowNotSet,
+    CandlestickPriceCloseNotSet,
+    CandlestickDatetimeNotSet,
 }
 
 impl Display for TinkoffInvestError {
@@ -38,10 +45,7 @@ impl Display for TinkoffInvestError {
             TinkoffInvestError::OrdersServiceClientNotInit => {
                 write!(f, "{}", "Orders service client not init.")
             }
-            TinkoffInvestError::MarketInstrumentKindNotCurrency => {
-                write!(f, "{}", "")
-            }
-            TinkoffInvestError::MarketInstrumentKindNotShare => {
+            _ => {
                 write!(f, "{}", "")
             }
         }
