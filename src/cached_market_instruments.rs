@@ -61,7 +61,7 @@ impl CachedMarketInstruments {
         T: traits::ToFigi,
     {
         let figi = value.to_figi();
-        self.hash_map_by_figi.get(&figi).map(|x| x.clone())
+        self.hash_map_by_figi.get(&figi).cloned()
     }
 
     #[inline]
@@ -72,7 +72,7 @@ impl CachedMarketInstruments {
         let ticker = value.to_ticker();
         self.hash_map_link_ticker_figi
             .get(&ticker)
-            .map(|x| x.into_iter().map(|x| self.by_figi(x).unwrap()).collect())
+            .map(|x| x.iter().map(|x| self.by_figi(x).unwrap()).collect())
     }
 
     #[inline]
@@ -86,6 +86,12 @@ impl CachedMarketInstruments {
         self.hash_map_link_class_code_ticker_figi
             .get(&key)
             .map(|x| self.by_figi(x).unwrap())
+    }
+}
+
+impl Default for CachedMarketInstruments {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

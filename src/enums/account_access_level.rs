@@ -8,9 +8,9 @@ pub enum AccountAccessLevel {
     NoAccess,
 }
 
-impl Into<AccountAccessLevel> for tit::AccessLevel {
-    fn into(self) -> AccountAccessLevel {
-        match self {
+impl From<tit::AccessLevel> for AccountAccessLevel {
+    fn from(value: tit::AccessLevel) -> Self {
+        match value {
             tit::AccessLevel::AccountAccessLevelUnspecified => AccountAccessLevel::Unspecified,
             tit::AccessLevel::AccountAccessLevelFullAccess => AccountAccessLevel::FullAccess,
             tit::AccessLevel::AccountAccessLevelReadOnly => AccountAccessLevel::ReadOnly,

@@ -8,14 +8,20 @@ impl Isin {
     }
 }
 
-impl Into<Isin> for String {
-    fn into(self) -> Isin {
-        Isin::new(self)
+impl From<&str> for Isin {
+    fn from(value: &str) -> Self {
+        Isin::new(value.into())
     }
 }
 
-impl Into<String> for Isin {
-    fn into(self) -> String {
-        self.0
+impl From<String> for Isin {
+    fn from(value: String) -> Self {
+        Isin::new(value)
+    }
+}
+
+impl From<Isin> for String {
+    fn from(value: Isin) -> Self {
+        value.0
     }
 }

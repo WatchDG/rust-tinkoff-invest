@@ -1,4 +1,4 @@
-use tinkoff_invest_types;
+use tinkoff_invest_types as tit;
 
 use crate::{enums, types};
 
@@ -19,28 +19,29 @@ pub struct Operation {
     pub datetime: Option<types::DateTime>,
 }
 
-impl Into<Operation> for &tinkoff_invest_types::Operation {
-    fn into(self) -> Operation {
-        let parent_id = if self.parent_operation_id.len() > 0 {
-            Some(self.parent_operation_id.clone())
+impl From<tit::Operation> for Operation {
+    fn from(value: tit::Operation) -> Self {
+        let parent_id = if !value.parent_operation_id.is_empty() {
+            Some(value.parent_operation_id.clone())
         } else {
             None
         };
-        let state = self.state().into();
+        let state = value.state().into();
+        let operation_type = value.operation_type().into();
         Operation {
-            id: self.id.clone(),
+            id: value.id,
             parent_id,
-            figi: self.figi.clone().into(),
-            currency: self.currency.clone().into(),
-            payment: self.payment.as_ref().map(|x| x.into()),
-            price: self.price.as_ref().map(|x| x.into()),
+            figi: value.figi.into(),
+            currency: value.currency.into(),
+            payment: value.payment.map(|x| x.into()),
+            price: value.price.map(|x| x.into()),
             state,
-            quantity: self.quantity,
-            quantity_rest: self.quantity_rest,
-            instrument_type: self.instrument_type.clone().into(),
-            operation_type: self.operation_type().into(),
-            trades: self.trades.iter().map(|x| x.into()).collect(),
-            datetime: self.date.as_ref().map(|x| x.into()),
+            quantity: value.quantity,
+            quantity_rest: value.quantity_rest,
+            instrument_type: value.instrument_type.into(),
+            operation_type,
+            trades: value.trades.iter().map(|x| x.clone().into()).collect(),
+            datetime: value.date.map(|x| x.into()),
         }
     }
 }

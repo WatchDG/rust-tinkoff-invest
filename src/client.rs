@@ -131,10 +131,7 @@ where
             None
         };
         let orders_service_client = if self.enable_orders_service_client {
-            Some(OrdersServiceClient::with_interceptor(
-                channel.clone(),
-                interceptor.clone(),
-            ))
+            Some(OrdersServiceClient::with_interceptor(channel, interceptor))
         } else {
             None
         };
@@ -146,6 +143,15 @@ where
             operations_service_client,
             orders_service_client,
         })
+    }
+}
+
+impl<I> Default for TinkoffInvestBuilder<I>
+where
+    I: Interceptor + Clone,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -191,7 +197,7 @@ where
             .ok_or(TinkoffInvestError::UsersServiceClientNotInit)?;
         let request = GetAccountsRequest {};
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
-        Ok(accounts.iter().map(|v| v.into()).collect())
+        Ok(accounts.iter().map(|v| v.clone().into()).collect())
     }
 
     pub async fn market_instruments(
@@ -242,8 +248,10 @@ where
             .instruments_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentRequest::default();
-        request.id = instrument.to_figi().into();
+        let mut request = InstrumentRequest {
+            id: instrument.to_figi().into(),
+            ..Default::default()
+        };
         request.set_id_type(InstrumentIdType::Figi);
         let share = client.share_by(request).await?.into_inner().instrument;
         Ok(share.as_ref().map(|x| x.clone().into()))
@@ -274,8 +282,10 @@ where
             .instruments_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentRequest::default();
-        request.id = instrument.to_figi().into();
+        let mut request = InstrumentRequest {
+            id: instrument.to_figi().into(),
+            ..Default::default()
+        };
         request.set_id_type(InstrumentIdType::Figi);
         let currency = client.currency_by(request).await?.into_inner().instrument;
         Ok(currency.as_ref().map(|x| x.clone().into()))
@@ -306,17 +316,19 @@ where
         &mut self,
         instrument: T,
         interval: enums::CandlestickInterval,
-        from: Option<types::DateTime>,
-        to: Option<types::DateTime>,
+        from: types::DateTime,
+        to: types::DateTime,
     ) -> Result<Vec<types::Candlestick>, Box<dyn Error>>
     where
         T: traits::ToFigi,
     {
         let figi = instrument.to_figi();
-        let mut request = GetCandlesRequest::default();
-        request.figi = figi.clone().into();
-        request.from = from.map(|x| x.into());
-        request.to = to.map(|x| x.into());
+        let mut request = GetCandlesRequest {
+            figi: figi.clone().into(),
+            from: Some(from.into()),
+            to: Some(to.into()),
+            ..Default::default()
+        };
         request.set_interval(interval.clone().into());
         let client = self
             .market_data_service_client
@@ -366,7 +378,7 @@ where
             .await?
             .into_inner()
             .operations;
-        Ok(operations.iter().map(|v| v.into()).collect())
+        Ok(operations.iter().map(|x| x.clone().into()).collect())
     }
 
     pub async fn operations<T>(
@@ -403,12 +415,14 @@ where
         K: traits::ToFigi,
     {
         let order_id = order_id.unwrap_or_else(|| Uuid::new_v4().to_string());
-        let mut request = PostOrderRequest::default();
-        request.order_id = order_id;
-        request.account_id = account.to_account_id();
-        request.figi = instrument.to_figi().into();
-        request.quantity = quantity as i64;
-        request.price = Some(price.into());
+        let mut request = PostOrderRequest {
+            order_id,
+            account_id: account.to_account_id(),
+            figi: instrument.to_figi().into(),
+            quantity: quantity as i64,
+            price: Some(price.into()),
+            ..Default::default()
+        };
         request.set_direction(direction.into());
         request.set_order_type(tinkoff_invest_types::OrderType::Limit);
         let client = self

@@ -1,4 +1,4 @@
-use tinkoff_invest_types;
+use tinkoff_invest_types as tit;
 
 use crate::{enums, traits, types};
 
@@ -20,33 +20,19 @@ pub struct Account {
     pub closed_datetime: Option<types::DateTime>,
 }
 
-impl Into<Account> for tinkoff_invest_types::Account {
-    fn into(self) -> Account {
-        let kind = self.r#type().into();
-        let status = self.status().into();
-        let access_level = self.access_level().into();
+impl From<tit::Account> for Account {
+    fn from(value: tit::Account) -> Self {
+        let kind = value.r#type().into();
+        let status = value.status().into();
+        let access_level = value.access_level().into();
         Account {
-            id: self.id,
+            id: value.id,
             kind,
-            name: self.name,
+            name: value.name,
             status,
             access_level,
-            opened_datetime: self.opened_date.map(|x| x.into()),
-            closed_datetime: self.closed_date.map(|x| x.into()),
-        }
-    }
-}
-
-impl Into<Account> for &tinkoff_invest_types::Account {
-    fn into(self) -> Account {
-        Account {
-            id: self.id.clone(),
-            kind: self.r#type().into(),
-            name: self.name.clone(),
-            access_level: self.access_level().into(),
-            status: self.status().into(),
-            opened_datetime: self.opened_date.as_ref().map(|x| x.into()),
-            closed_datetime: self.closed_date.as_ref().map(|x| x.into()),
+            opened_datetime: value.opened_date.map(|x| x.into()),
+            closed_datetime: value.closed_date.map(|x| x.into()),
         }
     }
 }

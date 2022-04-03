@@ -1,4 +1,4 @@
-use tinkoff_invest_types;
+use tinkoff_invest_types as tit;
 
 use crate::{enums, types};
 
@@ -28,42 +28,65 @@ pub struct Order {
     pub status: enums::OrderStatus,
 }
 
-impl Into<Order> for tinkoff_invest_types::PostOrderResponse {
-    fn into(self) -> Order {
+impl From<tit::PostOrderResponse> for Order {
+    fn from(value: tit::PostOrderResponse) -> Self {
+        let figi = value.figi.clone().into();
+        let kind = value.order_type().into();
+        let direction = value.direction().into();
+        let status = value.execution_report_status().into();
         Order {
-            id: self.order_id.clone(),
-            figi: self.figi.clone().into(),
-            kind: self.order_type().into(),
-            direction: self.direction().into(),
-            lots_requested: self.lots_requested as u64,
-            lots_executed: self.lots_executed as u64,
-            initial_price: self.initial_security_price.as_ref().map(|x| x.into()),
-            initial_price_pt: self.initial_order_price_pt.as_ref().map(|x| x.into()),
-            initial_amount: self.initial_order_price.as_ref().map(|x| x.into()),
-            executed_amount: self.executed_order_price.as_ref().map(|x| x.into()),
-            initial_commission: self.initial_commission.as_ref().map(|x| x.into()),
-            executed_commission: self.executed_commission.as_ref().map(|x| x.into()),
-            status: self.execution_report_status().into(),
+            id: value.order_id,
+            figi,
+            kind,
+            direction,
+            lots_requested: value.lots_requested as u64,
+            lots_executed: value.lots_executed as u64,
+            initial_price: value
+                .initial_security_price
+                .as_ref()
+                .map(|x| x.clone().into()),
+            initial_price_pt: value
+                .initial_order_price_pt
+                .as_ref()
+                .map(|x| x.clone().into()),
+            initial_amount: value.initial_order_price.as_ref().map(|x| x.clone().into()),
+            executed_amount: value
+                .executed_order_price
+                .as_ref()
+                .map(|x| x.clone().into()),
+            initial_commission: value.initial_commission.as_ref().map(|x| x.clone().into()),
+            executed_commission: value.executed_commission.as_ref().map(|x| x.clone().into()),
+            status,
         }
     }
 }
 
-impl Into<Order> for tinkoff_invest_types::OrderState {
-    fn into(self) -> Order {
+impl From<tit::OrderState> for Order {
+    fn from(value: tit::OrderState) -> Self {
+        let figi = value.figi.clone().into();
+        let kind = value.order_type().into();
+        let direction = value.direction().into();
+        let status = value.execution_report_status().into();
         Order {
-            id: self.order_id.clone(),
-            kind: self.order_type().into(),
-            figi: self.figi.clone().into(),
-            direction: self.direction().into(),
-            lots_requested: self.lots_requested as u64,
-            lots_executed: self.lots_executed as u64,
-            initial_price: self.initial_security_price.as_ref().map(|x| x.into()),
+            id: value.order_id,
+            figi,
+            kind,
+            direction,
+            lots_requested: value.lots_requested as u64,
+            lots_executed: value.lots_executed as u64,
+            initial_price: value
+                .initial_security_price
+                .as_ref()
+                .map(|x| x.clone().into()),
             initial_price_pt: None,
-            initial_amount: self.initial_order_price.as_ref().map(|x| x.into()),
-            executed_amount: self.executed_order_price.as_ref().map(|x| x.into()),
-            initial_commission: self.initial_commission.as_ref().map(|x| x.into()),
-            executed_commission: self.executed_commission.as_ref().map(|x| x.into()),
-            status: self.execution_report_status().into(),
+            initial_amount: value.initial_order_price.as_ref().map(|x| x.clone().into()),
+            executed_amount: value
+                .executed_order_price
+                .as_ref()
+                .map(|x| x.clone().into()),
+            initial_commission: value.initial_commission.as_ref().map(|x| x.clone().into()),
+            executed_commission: value.executed_commission.as_ref().map(|x| x.clone().into()),
+            status,
         }
     }
 }

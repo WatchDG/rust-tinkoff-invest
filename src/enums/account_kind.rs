@@ -8,9 +8,9 @@ pub enum AccountKind {
     InvestBox,
 }
 
-impl Into<AccountKind> for tit::AccountType {
-    fn into(self) -> AccountKind {
-        match self {
+impl From<tit::AccountType> for AccountKind {
+    fn from(value: tit::AccountType) -> Self {
+        match value {
             tit::AccountType::Unspecified => AccountKind::Unspecified,
             tit::AccountType::Tinkoff => AccountKind::Tinkoff,
             tit::AccountType::TinkoffIis => AccountKind::TinkoffIis,

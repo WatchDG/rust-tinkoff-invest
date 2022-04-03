@@ -10,9 +10,9 @@ pub enum OrderStatus {
     PartiallyFill,
 }
 
-impl Into<OrderStatus> for tinkoff_invest_types::OrderExecutionReportStatus {
-    fn into(self) -> OrderStatus {
-        match self {
+impl From<tit::OrderExecutionReportStatus> for OrderStatus {
+    fn from(value: tit::OrderExecutionReportStatus) -> Self {
+        match value {
             tit::OrderExecutionReportStatus::ExecutionReportStatusUnspecified => {
                 OrderStatus::Unspecified
             }

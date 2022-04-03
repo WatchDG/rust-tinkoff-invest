@@ -1,4 +1,5 @@
-use std::convert::TryInto;
+use std::convert::TryFrom;
+
 use tinkoff_invest_types as tit;
 
 use crate::{enums, types, TinkoffInvestError};
@@ -16,18 +17,18 @@ pub struct Candlestick {
     pub is_complete: bool,
 }
 
-impl Into<Candlestick> for tit::HistoricCandle {
-    fn into(self) -> Candlestick {
+impl From<tit::HistoricCandle> for Candlestick {
+    fn from(value: tit::HistoricCandle) -> Self {
         Candlestick {
             figi: None,
             interval: None,
-            open: self.open.map(|x| x.into()),
-            high: self.high.map(|x| x.into()),
-            low: self.low.map(|x| x.into()),
-            close: self.close.map(|x| x.into()),
-            volume: self.volume as u64,
-            datetime: self.time.map(|x| x.into()),
-            is_complete: self.is_complete,
+            open: value.open.map(|x| x.into()),
+            high: value.high.map(|x| x.into()),
+            low: value.low.map(|x| x.into()),
+            close: value.close.map(|x| x.into()),
+            volume: value.volume as u64,
+            datetime: value.time.map(|x| x.into()),
+            is_complete: value.is_complete,
         }
     }
 }
@@ -45,32 +46,34 @@ pub struct StrictCandlestick {
     pub is_complete: bool,
 }
 
-impl TryInto<StrictCandlestick> for Candlestick {
+impl TryFrom<Candlestick> for StrictCandlestick {
     type Error = TinkoffInvestError;
 
-    fn try_into(self) -> Result<StrictCandlestick, Self::Error> {
+    fn try_from(value: Candlestick) -> Result<Self, Self::Error> {
         Ok(StrictCandlestick {
-            figi: self.figi.ok_or(TinkoffInvestError::CandlestickFigiNotSet)?,
-            interval: self
+            figi: value
+                .figi
+                .ok_or(TinkoffInvestError::CandlestickFigiNotSet)?,
+            interval: value
                 .interval
                 .ok_or(TinkoffInvestError::CandlestickIntervalNotSet)?,
-            open: self
+            open: value
                 .open
                 .ok_or(TinkoffInvestError::CandlestickPriceOpenNotSet)?,
-            high: self
+            high: value
                 .high
                 .ok_or(TinkoffInvestError::CandlestickPriceHighNotSet)?,
-            low: self
+            low: value
                 .low
                 .ok_or(TinkoffInvestError::CandlestickPriceLowNotSet)?,
-            close: self
+            close: value
                 .close
                 .ok_or(TinkoffInvestError::CandlestickPriceCloseNotSet)?,
-            volume: self.volume,
-            datetime: self
+            volume: value.volume,
+            datetime: value
                 .datetime
                 .ok_or(TinkoffInvestError::CandlestickDatetimeNotSet)?,
-            is_complete: self.is_complete,
+            is_complete: value.is_complete,
         })
     }
 }

@@ -41,6 +41,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### get candlesticks
+
+```rust
+use tinkoff_invest::{enums::CandlestickInterval, extra::chrono, types::Figi, TinkoffInvest};
+
+#[tokio::main()]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = "...";
+    let mut tinkoff = TinkoffInvest::new(token.into())?;
+
+    let figi = Figi::from("BBG004730N88");
+    let from = chrono::NaiveDate::from_ymd(2020, 1, 10);
+    let to = chrono::NaiveDate::from_ymd(2020, 1, 11);
+    let candlesticks = tinkoff
+        .candlesticks(&figi, CandlestickInterval::Min1, from.into(), to.into())
+        .await?;
+
+    println!("{:?}", candlesticks);
+
+    Ok(())
+}
+```
+
 ## Cached Market Instruments
 
 ### example

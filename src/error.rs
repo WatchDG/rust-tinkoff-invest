@@ -25,28 +25,28 @@ impl Display for TinkoffInvestError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
             TinkoffInvestError::InterceptorNotSet => {
-                write!(f, "{}", "Interceptor not set.")
+                write!(f, "Interceptor not set.")
             }
             TinkoffInvestError::AccountNotSet => {
-                write!(f, "{}", "Account not set.")
+                write!(f, "Account not set.")
             }
             TinkoffInvestError::UsersServiceClientNotInit => {
-                write!(f, "{}", "Users service client not init.")
+                write!(f, "Users service client not init.")
             }
             TinkoffInvestError::InstrumentsServiceClientNotInit => {
-                write!(f, "{}", "Instruments service client not init.")
+                write!(f, "Instruments service client not init.")
             }
             TinkoffInvestError::MarketDataServiceClientNotInit => {
-                write!(f, "{}", "Market data service client not init.")
+                write!(f, "Market data service client not init.")
             }
             TinkoffInvestError::OperationsServiceClientNotInit => {
-                write!(f, "{}", "Operations service client not init.")
+                write!(f, "Operations service client not init.")
             }
             TinkoffInvestError::OrdersServiceClientNotInit => {
-                write!(f, "{}", "Orders service client not init.")
+                write!(f, "Orders service client not init.")
             }
             _ => {
-                write!(f, "{}", "")
+                write!(f, "")
             }
         }
     }

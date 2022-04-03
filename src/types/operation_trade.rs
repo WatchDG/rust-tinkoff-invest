@@ -1,4 +1,4 @@
-use tinkoff_invest_types;
+use tinkoff_invest_types as tit;
 
 use crate::types;
 
@@ -10,24 +10,13 @@ pub struct OperationTrade {
     pub datetime: Option<types::DateTime>,
 }
 
-impl Into<OperationTrade> for tinkoff_invest_types::OperationTrade {
-    fn into(self) -> OperationTrade {
+impl From<tit::OperationTrade> for OperationTrade {
+    fn from(value: tit::OperationTrade) -> Self {
         OperationTrade {
-            id: self.trade_id.clone(),
-            quantity: self.quantity,
-            price: self.price.map(|x| x.into()),
-            datetime: self.date_time.map(|x| x.into()),
-        }
-    }
-}
-
-impl Into<OperationTrade> for &tinkoff_invest_types::OperationTrade {
-    fn into(self) -> OperationTrade {
-        OperationTrade {
-            id: self.trade_id.clone(),
-            quantity: self.quantity,
-            price: self.price.as_ref().map(|x| x.into()),
-            datetime: self.date_time.as_ref().map(|x| x.into()),
+            id: value.trade_id,
+            quantity: value.quantity,
+            price: value.price.map(|x| x.into()),
+            datetime: value.date_time.map(|x| x.into()),
         }
     }
 }

@@ -7,9 +7,9 @@ pub enum OrderKind {
     Market,
 }
 
-impl Into<OrderKind> for tit::OrderType {
-    fn into(self) -> OrderKind {
-        match self {
+impl From<tit::OrderType> for OrderKind {
+    fn from(value: tit::OrderType) -> Self {
+        match value {
             tit::OrderType::Unspecified => OrderKind::Unspecified,
             tit::OrderType::Limit => OrderKind::Limit,
             tit::OrderType::Market => OrderKind::Market,

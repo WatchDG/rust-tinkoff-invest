@@ -1,4 +1,4 @@
-use tinkoff_invest_types;
+use tinkoff_invest_types as tit;
 
 use crate::enums;
 
@@ -15,29 +15,20 @@ impl MoneyValue {
     }
 }
 
-impl Into<MoneyValue> for tinkoff_invest_types::Quotation {
-    fn into(self) -> MoneyValue {
+impl From<tit::Quotation> for MoneyValue {
+    fn from(value: tit::Quotation) -> Self {
         MoneyValue {
-            units: self.units,
-            nano: self.nano,
+            units: value.units,
+            nano: value.nano,
         }
     }
 }
 
-impl Into<MoneyValue> for &tinkoff_invest_types::Quotation {
-    fn into(self) -> MoneyValue {
-        MoneyValue {
-            units: self.units,
-            nano: self.nano,
-        }
-    }
-}
-
-impl Into<tinkoff_invest_types::Quotation> for MoneyValue {
-    fn into(self) -> tinkoff_invest_types::Quotation {
-        tinkoff_invest_types::Quotation {
-            units: self.units,
-            nano: self.nano,
+impl From<MoneyValue> for tit::Quotation {
+    fn from(value: MoneyValue) -> Self {
+        tit::Quotation {
+            units: value.units,
+            nano: value.nano,
         }
     }
 }
@@ -55,26 +46,14 @@ impl Money {
     }
 }
 
-impl Into<Money> for tinkoff_invest_types::MoneyValue {
-    fn into(self) -> Money {
+impl From<tit::MoneyValue> for Money {
+    fn from(value: tit::MoneyValue) -> Self {
         Money {
             value: MoneyValue {
-                units: self.units,
-                nano: self.nano,
+                units: value.units,
+                nano: value.nano,
             },
-            currency: self.currency.into(),
-        }
-    }
-}
-
-impl Into<Money> for &tinkoff_invest_types::MoneyValue {
-    fn into(self) -> Money {
-        Money {
-            value: MoneyValue {
-                units: self.units,
-                nano: self.nano,
-            },
-            currency: self.currency.clone().into(),
+            currency: value.currency.into(),
         }
     }
 }

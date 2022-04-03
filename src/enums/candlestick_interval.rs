@@ -10,9 +10,9 @@ pub enum CandlestickInterval {
     Day,
 }
 
-impl Into<CandlestickInterval> for tit::CandleInterval {
-    fn into(self) -> CandlestickInterval {
-        match self {
+impl From<tit::CandleInterval> for CandlestickInterval {
+    fn from(value: tit::CandleInterval) -> Self {
+        match value {
             tit::CandleInterval::Unspecified => CandlestickInterval::Unspecified,
             tit::CandleInterval::CandleInterval1Min => CandlestickInterval::Min1,
             tit::CandleInterval::CandleInterval5Min => CandlestickInterval::Min5,
@@ -23,9 +23,9 @@ impl Into<CandlestickInterval> for tit::CandleInterval {
     }
 }
 
-impl Into<tit::CandleInterval> for CandlestickInterval {
-    fn into(self) -> tit::CandleInterval {
-        match self {
+impl From<CandlestickInterval> for tit::CandleInterval {
+    fn from(value: CandlestickInterval) -> Self {
+        match value {
             CandlestickInterval::Unspecified => tit::CandleInterval::Unspecified,
             CandlestickInterval::Min1 => tit::CandleInterval::CandleInterval1Min,
             CandlestickInterval::Min5 => tit::CandleInterval::CandleInterval5Min,

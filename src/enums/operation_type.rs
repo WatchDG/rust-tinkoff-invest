@@ -1,4 +1,4 @@
-use tinkoff_invest_types;
+use tinkoff_invest_types as tit;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OperationType {
@@ -49,9 +49,9 @@ pub enum OperationType {
     TaxCorrectionCoupon,
 }
 
-impl Into<OperationType> for tinkoff_invest_types::OperationType {
-    fn into(self) -> OperationType {
-        match self {
+impl From<tit::OperationType> for OperationType {
+    fn from(value: tit::OperationType) -> Self {
+        match value {
             tinkoff_invest_types::OperationType::Unspecified => OperationType::Unspecified,
             tinkoff_invest_types::OperationType::Input => OperationType::Input,
             tinkoff_invest_types::OperationType::BondTax => OperationType::BondTax,

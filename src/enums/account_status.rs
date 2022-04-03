@@ -8,9 +8,9 @@ pub enum AccountStatus {
     Closed,
 }
 
-impl Into<AccountStatus> for tit::AccountStatus {
-    fn into(self) -> AccountStatus {
-        match self {
+impl From<tit::AccountStatus> for AccountStatus {
+    fn from(value: tit::AccountStatus) -> Self {
+        match value {
             tit::AccountStatus::Unspecified => AccountStatus::Unspecified,
             tit::AccountStatus::New => AccountStatus::New,
             tit::AccountStatus::Open => AccountStatus::Open,

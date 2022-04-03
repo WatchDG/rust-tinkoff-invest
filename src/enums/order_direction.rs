@@ -7,9 +7,9 @@ pub enum OrderDirection {
     Sell,
 }
 
-impl Into<OrderDirection> for tinkoff_invest_types::OrderDirection {
-    fn into(self) -> OrderDirection {
-        match self {
+impl From<tit::OrderDirection> for OrderDirection {
+    fn from(value: tit::OrderDirection) -> Self {
+        match value {
             tit::OrderDirection::Unspecified => OrderDirection::Unspecified,
             tit::OrderDirection::Buy => OrderDirection::Buy,
             tit::OrderDirection::Sell => OrderDirection::Sell,
@@ -17,9 +17,9 @@ impl Into<OrderDirection> for tinkoff_invest_types::OrderDirection {
     }
 }
 
-impl Into<tinkoff_invest_types::OrderDirection> for OrderDirection {
-    fn into(self) -> tinkoff_invest_types::OrderDirection {
-        match self {
+impl From<OrderDirection> for tit::OrderDirection {
+    fn from(value: OrderDirection) -> Self {
+        match value {
             OrderDirection::Unspecified => tit::OrderDirection::Unspecified,
             OrderDirection::Buy => tit::OrderDirection::Buy,
             OrderDirection::Sell => tit::OrderDirection::Sell,
