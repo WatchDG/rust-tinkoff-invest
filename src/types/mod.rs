@@ -1,5 +1,6 @@
 mod account;
 mod candlestick;
+mod class_code_ticker;
 mod datetime;
 mod figi;
 mod isin;
@@ -12,6 +13,7 @@ mod ticker;
 
 pub use account::Account;
 pub use candlestick::{Candlestick, StrictCandlestick};
+pub use class_code_ticker::ClassCodeTicker;
 pub use datetime::DateTime;
 pub use figi::Figi;
 pub use isin::Isin;

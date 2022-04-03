@@ -1,7 +1,5 @@
 use tinkoff_invest_types as tit;
 
-use crate::enums::MarketInstrumentKind;
-use crate::types::Figi;
 use crate::{enums, traits, types};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -64,13 +62,19 @@ impl Into<MarketInstrument> for tit::Share {
 }
 
 impl traits::ToFigi for &MarketInstrument {
-    fn to_figi(&self) -> Figi {
+    fn to_figi(&self) -> types::Figi {
         self.figi.clone()
     }
 }
 
 impl traits::ToMarketInstrumentKind for &MarketInstrument {
-    fn to_market_instrument_kind(&self) -> MarketInstrumentKind {
+    fn to_market_instrument_kind(&self) -> enums::MarketInstrumentKind {
         self.kind.clone()
+    }
+}
+
+impl traits::ToClassCode for &MarketInstrument {
+    fn to_class_code(&self) -> enums::ClassCode {
+        self.class_code.clone()
     }
 }
