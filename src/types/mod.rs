@@ -7,9 +7,9 @@ mod isin;
 mod market_instrument;
 mod money;
 mod operation;
-mod operation_trade;
 mod order;
 mod ticker;
+mod trade;
 
 pub use account::Account;
 pub use candlestick::{Candlestick, StrictCandlestick};
@@ -20,6 +20,6 @@ pub use isin::Isin;
 pub use market_instrument::MarketInstrument;
 pub use money::{Money, MoneyValue};
 pub use operation::Operation;
-pub use operation_trade::OperationTrade;
 pub use order::Order;
 pub use ticker::Ticker;
+pub use trade::Trade;

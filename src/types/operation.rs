@@ -4,18 +4,29 @@ use crate::{enums, types};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Operation {
+    /// Идентификатор операции.
     pub id: String,
+    /// Идентификатор родительской операции.
     pub parent_id: Option<String>,
+    /// FIGI инструмента операции.
     pub figi: types::Figi,
-    pub currency: enums::Currency,
-    pub payment: Option<types::Money>,
+    /// Количество лотов инструмента операции.
+    pub lots: u64,
+    /// Неисполненное количество лотов инструмента операции.
+    pub lots_rest: u64,
+    /// Цена лота инструмента операции.
     pub price: Option<types::Money>,
+    /// Суммарная стоимость операции.
+    pub total: Option<types::Money>,
+    /// Валюта операции.
+    pub currency: enums::Currency,
+    /// Состояние операции.
     pub state: enums::OperationState,
-    pub quantity: i64,
-    pub quantity_rest: i64,
-    pub instrument_type: enums::InstrumentType,
-    pub operation_type: enums::OperationType,
-    pub trades: Vec<types::OperationTrade>,
+    /// Тип операции.
+    pub kind: enums::OperationKind,
+    /// Сделки операции.
+    pub trades: Vec<types::Trade>,
+    /// Дата и время совершения операции.
     pub datetime: Option<types::DateTime>,
 }
 
@@ -27,19 +38,18 @@ impl From<tit::Operation> for Operation {
             None
         };
         let state = value.state().into();
-        let operation_type = value.operation_type().into();
+        let kind = value.operation_type().into();
         Operation {
             id: value.id,
             parent_id,
             figi: value.figi.into(),
             currency: value.currency.into(),
-            payment: value.payment.map(|x| x.into()),
+            total: value.payment.map(|x| x.into()),
             price: value.price.map(|x| x.into()),
             state,
-            quantity: value.quantity,
-            quantity_rest: value.quantity_rest,
-            instrument_type: value.instrument_type.into(),
-            operation_type,
+            lots: value.quantity as u64,
+            lots_rest: value.quantity_rest as u64,
+            kind,
             trades: value.trades.iter().map(|x| x.clone().into()).collect(),
             datetime: value.date.map(|x| x.into()),
         }

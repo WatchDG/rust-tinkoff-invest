@@ -15,6 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let accounts = tinkoff.accounts().await?;
+    
     println!("accounts: {:?}", accounts);
 
     Ok(())
@@ -55,10 +56,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let from = chrono::NaiveDate::from_ymd(2020, 1, 10);
     let to = chrono::NaiveDate::from_ymd(2020, 1, 11);
     let candlesticks = tinkoff
-        .candlesticks(&figi, CandlestickInterval::Min1, from.into(), to.into())
+        .candlesticks(&figi, CandlestickInterval::Min, from.into(), to.into())
         .await?;
 
     println!("{:?}", candlesticks);
+
+    Ok(())
+}
+```
+
+### get operations
+
+```rust
+use tinkoff_invest::{enums::OperationState, extra::chrono, types::Figi, TinkoffInvest};
+
+#[tokio::main()]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = "...";
+    let mut tinkoff = TinkoffInvest::new(token.into())?;
+
+    let accounts = tinkoff.accounts().await?;
+
+    let first_account = accounts.get(0).unwrap().clone();
+
+    tinkoff.set_account(Some(first_account));
+
+    let figi = Figi::from("BBG004730N88");
+    let from = chrono::NaiveDate::from_ymd(2020, 1, 1);
+    let to = chrono::NaiveDate::from_ymd(2023, 1, 1);
+    let operation = tinkoff
+        .operations(&figi, OperationState::Unspecified, from.into(), to.into())
+        .await?;
+
+    println!("{:?}", operation);
 
     Ok(())
 }

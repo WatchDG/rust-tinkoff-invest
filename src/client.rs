@@ -352,15 +352,15 @@ where
         account: T,
         instrument: K,
         state: enums::OperationState,
-        from: Option<types::DateTime>,
-        to: Option<types::DateTime>,
+        from: types::DateTime,
+        to: types::DateTime,
     ) -> Result<Vec<types::Operation>, Box<dyn Error>>
     where
         T: traits::ToAccountId,
         K: traits::ToFigi,
     {
-        let from: Option<tinkoff_invest_types::extra::Timestamp> = from.map(|x| x.into());
-        let to: Option<tinkoff_invest_types::extra::Timestamp> = to.map(|x| x.into());
+        let from = Some(from.into());
+        let to = Some(to.into());
         let client = self
             .operations_service_client
             .as_mut()
@@ -385,8 +385,8 @@ where
         &mut self,
         instrument: T,
         state: enums::OperationState,
-        from: Option<types::DateTime>,
-        to: Option<types::DateTime>,
+        from: types::DateTime,
+        to: types::DateTime,
     ) -> Result<Vec<types::Operation>, Box<dyn Error>>
     where
         T: traits::ToFigi,

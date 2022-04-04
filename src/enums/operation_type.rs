@@ -1,7 +1,7 @@
 use tinkoff_invest_types as tit;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum OperationType {
+pub enum OperationKind {
     Unspecified,
     Input,
     BondTax,
@@ -49,80 +49,54 @@ pub enum OperationType {
     TaxCorrectionCoupon,
 }
 
-impl From<tit::OperationType> for OperationType {
+impl From<tit::OperationType> for OperationKind {
     fn from(value: tit::OperationType) -> Self {
         match value {
-            tinkoff_invest_types::OperationType::Unspecified => OperationType::Unspecified,
-            tinkoff_invest_types::OperationType::Input => OperationType::Input,
-            tinkoff_invest_types::OperationType::BondTax => OperationType::BondTax,
-            tinkoff_invest_types::OperationType::OutputSecurities => {
-                OperationType::OutputSecurities
-            }
-            tinkoff_invest_types::OperationType::Overnight => OperationType::Overnight,
-            tinkoff_invest_types::OperationType::Tax => OperationType::Tax,
-            tinkoff_invest_types::OperationType::BondRepaymentFull => {
-                OperationType::BondRepaymentFull
-            }
-            tinkoff_invest_types::OperationType::SellCard => OperationType::SellCard,
-            tinkoff_invest_types::OperationType::DividendTax => OperationType::DividendTax,
-            tinkoff_invest_types::OperationType::Output => OperationType::Output,
-            tinkoff_invest_types::OperationType::BondRepayment => OperationType::BondRepayment,
-            tinkoff_invest_types::OperationType::TaxCorrection => OperationType::TaxCorrection,
-            tinkoff_invest_types::OperationType::ServiceFee => OperationType::ServiceFee,
-            tinkoff_invest_types::OperationType::BenefitTax => OperationType::BenefitTax,
-            tinkoff_invest_types::OperationType::MarginFee => OperationType::MarginFee,
-            tinkoff_invest_types::OperationType::Buy => OperationType::Buy,
-            tinkoff_invest_types::OperationType::BuyCard => OperationType::BuyCard,
-            tinkoff_invest_types::OperationType::InputSecurities => OperationType::InputSecurities,
-            tinkoff_invest_types::OperationType::SellMargin => OperationType::SellMargin,
-            tinkoff_invest_types::OperationType::BrokerFee => OperationType::BrokerFee,
-            tinkoff_invest_types::OperationType::BuyMargin => OperationType::BuyMargin,
-            tinkoff_invest_types::OperationType::Dividend => OperationType::Dividend,
-            tinkoff_invest_types::OperationType::Sell => OperationType::Sell,
-            tinkoff_invest_types::OperationType::Coupon => OperationType::Coupon,
-            tinkoff_invest_types::OperationType::SuccessFee => OperationType::SuccessFee,
-            tinkoff_invest_types::OperationType::DividendTransfer => {
-                OperationType::DividendTransfer
-            }
-            tinkoff_invest_types::OperationType::AccruingVarmargin => {
-                OperationType::AccruingVarmargin
-            }
-            tinkoff_invest_types::OperationType::WritingOffVarmargin => {
-                OperationType::WritingOffVarmargin
-            }
-            tinkoff_invest_types::OperationType::DeliveryBuy => OperationType::DeliveryBuy,
-            tinkoff_invest_types::OperationType::DeliverySell => OperationType::DeliverySell,
-            tinkoff_invest_types::OperationType::TrackMfee => OperationType::TrackMfee,
-            tinkoff_invest_types::OperationType::TrackPfee => OperationType::TrackPfee,
-            tinkoff_invest_types::OperationType::TaxProgressive => OperationType::TaxProgressive,
-            tinkoff_invest_types::OperationType::BondTaxProgressive => {
-                OperationType::BondTaxProgressive
-            }
-            tinkoff_invest_types::OperationType::DividendTaxProgressive => {
-                OperationType::DividendTaxProgressive
-            }
-            tinkoff_invest_types::OperationType::BenefitTaxProgressive => {
-                OperationType::BenefitTaxProgressive
-            }
-            tinkoff_invest_types::OperationType::TaxCorrectionProgressive => {
-                OperationType::TaxCorrectionProgressive
-            }
-            tinkoff_invest_types::OperationType::TaxRepoProgressive => {
-                OperationType::TaxRepoProgressive
-            }
-            tinkoff_invest_types::OperationType::TaxRepo => OperationType::TaxRepo,
-            tinkoff_invest_types::OperationType::TaxRepoHold => OperationType::TaxRepoHold,
-            tinkoff_invest_types::OperationType::TaxRepoRefund => OperationType::TaxRepoRefund,
-            tinkoff_invest_types::OperationType::TaxRepoHoldProgressive => {
-                OperationType::TaxRepoHoldProgressive
-            }
-            tinkoff_invest_types::OperationType::TaxRepoRefundProgressive => {
-                OperationType::TaxRepoRefundProgressive
-            }
-            tinkoff_invest_types::OperationType::DivExt => OperationType::DivExt,
-            tinkoff_invest_types::OperationType::TaxCorrectionCoupon => {
-                OperationType::TaxCorrectionCoupon
-            }
+            tit::OperationType::Unspecified => OperationKind::Unspecified,
+            tit::OperationType::Input => OperationKind::Input,
+            tit::OperationType::BondTax => OperationKind::BondTax,
+            tit::OperationType::OutputSecurities => OperationKind::OutputSecurities,
+            tit::OperationType::Overnight => OperationKind::Overnight,
+            tit::OperationType::Tax => OperationKind::Tax,
+            tit::OperationType::BondRepaymentFull => OperationKind::BondRepaymentFull,
+            tit::OperationType::SellCard => OperationKind::SellCard,
+            tit::OperationType::DividendTax => OperationKind::DividendTax,
+            tit::OperationType::Output => OperationKind::Output,
+            tit::OperationType::BondRepayment => OperationKind::BondRepayment,
+            tit::OperationType::TaxCorrection => OperationKind::TaxCorrection,
+            tit::OperationType::ServiceFee => OperationKind::ServiceFee,
+            tit::OperationType::BenefitTax => OperationKind::BenefitTax,
+            tit::OperationType::MarginFee => OperationKind::MarginFee,
+            tit::OperationType::Buy => OperationKind::Buy,
+            tit::OperationType::BuyCard => OperationKind::BuyCard,
+            tit::OperationType::InputSecurities => OperationKind::InputSecurities,
+            tit::OperationType::SellMargin => OperationKind::SellMargin,
+            tit::OperationType::BrokerFee => OperationKind::BrokerFee,
+            tit::OperationType::BuyMargin => OperationKind::BuyMargin,
+            tit::OperationType::Dividend => OperationKind::Dividend,
+            tit::OperationType::Sell => OperationKind::Sell,
+            tit::OperationType::Coupon => OperationKind::Coupon,
+            tit::OperationType::SuccessFee => OperationKind::SuccessFee,
+            tit::OperationType::DividendTransfer => OperationKind::DividendTransfer,
+            tit::OperationType::AccruingVarmargin => OperationKind::AccruingVarmargin,
+            tit::OperationType::WritingOffVarmargin => OperationKind::WritingOffVarmargin,
+            tit::OperationType::DeliveryBuy => OperationKind::DeliveryBuy,
+            tit::OperationType::DeliverySell => OperationKind::DeliverySell,
+            tit::OperationType::TrackMfee => OperationKind::TrackMfee,
+            tit::OperationType::TrackPfee => OperationKind::TrackPfee,
+            tit::OperationType::TaxProgressive => OperationKind::TaxProgressive,
+            tit::OperationType::BondTaxProgressive => OperationKind::BondTaxProgressive,
+            tit::OperationType::DividendTaxProgressive => OperationKind::DividendTaxProgressive,
+            tit::OperationType::BenefitTaxProgressive => OperationKind::BenefitTaxProgressive,
+            tit::OperationType::TaxCorrectionProgressive => OperationKind::TaxCorrectionProgressive,
+            tit::OperationType::TaxRepoProgressive => OperationKind::TaxRepoProgressive,
+            tit::OperationType::TaxRepo => OperationKind::TaxRepo,
+            tit::OperationType::TaxRepoHold => OperationKind::TaxRepoHold,
+            tit::OperationType::TaxRepoRefund => OperationKind::TaxRepoRefund,
+            tit::OperationType::TaxRepoHoldProgressive => OperationKind::TaxRepoHoldProgressive,
+            tit::OperationType::TaxRepoRefundProgressive => OperationKind::TaxRepoRefundProgressive,
+            tit::OperationType::DivExt => OperationKind::DivExt,
+            tit::OperationType::TaxCorrectionCoupon => OperationKind::TaxCorrectionCoupon,
         }
     }
 }
