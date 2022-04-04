@@ -5,6 +5,10 @@ pub enum Currency {
     EUR,
     CHF,
     CNY,
+    GBP,
+    JPY,
+    HKD,
+    SEK,
     Currency(String),
 }
 
@@ -16,6 +20,10 @@ impl From<String> for Currency {
             "rub" => Currency::RUB,
             "chf" => Currency::CHF,
             "cny" => Currency::CNY,
+            "gbp" => Currency::GBP,
+            "jpy" => Currency::JPY,
+            "hkd" => Currency::HKD,
+            "sek" => Currency::SEK,
             _ => Currency::Currency(value),
         }
     }

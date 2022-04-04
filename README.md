@@ -65,6 +65,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### get order book
+
+```rust
+use tinkoff_invest::{types::Figi, TinkoffInvest};
+
+#[tokio::main()]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = "...";
+    let mut tinkoff = TinkoffInvest::new(token.into())?;
+
+    let figi = Figi::from("BBG004730N88");
+    let order_book = tinkoff.order_book(&figi, 10).await?;
+
+    println!("{:?}", order_book);
+
+    Ok(())
+}
+```
+
 ### get operations
 
 ```rust
@@ -84,11 +103,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let figi = Figi::from("BBG004730N88");
     let from = chrono::NaiveDate::from_ymd(2020, 1, 1);
     let to = chrono::NaiveDate::from_ymd(2023, 1, 1);
-    let operation = tinkoff
+    let operations = tinkoff
         .operations(&figi, OperationState::Unspecified, from.into(), to.into())
         .await?;
 
-    println!("{:?}", operation);
+    println!("{:?}", operations);
 
     Ok(())
 }

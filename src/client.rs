@@ -6,8 +6,8 @@ use tinkoff_invest_types::{
     market_data_service_client::MarketDataServiceClient,
     operations_service_client::OperationsServiceClient, orders_service_client::OrdersServiceClient,
     users_service_client::UsersServiceClient, GetAccountsRequest, GetCandlesRequest,
-    GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
-    OperationsRequest, PostOrderRequest,
+    GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType, InstrumentRequest,
+    InstrumentsRequest, OperationsRequest, PostOrderRequest,
 };
 use tonic::{
     codegen::InterceptedService,
@@ -15,6 +15,7 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
+use crate::traits::ToFigi;
 use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 
 pub struct TinkoffInvestBuilder<I>
@@ -344,6 +345,25 @@ where
                 candlestick
             })
             .collect())
+    }
+
+    pub async fn order_book<T>(
+        &mut self,
+        instrument: T,
+        depth: u32,
+    ) -> Result<types::OrderBook, Box<dyn Error>>
+    where
+        T: ToFigi,
+    {
+        let request = GetOrderBookRequest {
+            figi: instrument.to_figi().into(),
+            depth: depth as i32,
+        };
+        let client = self
+            .market_data_service_client
+            .as_mut()
+            .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
+        Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
     #[inline]

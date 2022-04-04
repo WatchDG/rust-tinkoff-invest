@@ -10,7 +10,7 @@ pub struct MoneyValue {
 
 impl MoneyValue {
     #[inline]
-    pub fn value(&self) -> f64 {
+    pub fn as_f64(&self) -> f64 {
         self.units as f64 + (self.nano as f64) / 1e9
     }
 }
@@ -41,8 +41,8 @@ pub struct Money {
 
 impl Money {
     #[inline]
-    pub fn value(&self) -> f64 {
-        self.value.value()
+    pub fn as_f64(&self) -> f64 {
+        self.value.as_f64()
     }
 }
 

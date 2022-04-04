@@ -8,6 +8,7 @@ mod market_instrument;
 mod money;
 mod operation;
 mod order;
+mod order_book;
 mod ticker;
 mod trade;
 
@@ -21,5 +22,6 @@ pub use market_instrument::MarketInstrument;
 pub use money::{Money, MoneyValue};
 pub use operation::Operation;
 pub use order::Order;
+pub use order_book::{OrderBook, OrderBookOrder};
 pub use ticker::Ticker;
 pub use trade::Trade;
