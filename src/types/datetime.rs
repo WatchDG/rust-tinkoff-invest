@@ -30,8 +30,8 @@ impl From<chrono::NaiveDate> for DateTime {
     }
 }
 
-impl From<tit::extra::Timestamp> for DateTime {
-    fn from(value: tit::extra::Timestamp) -> Self {
+impl From<tit::prost_types::Timestamp> for DateTime {
+    fn from(value: tit::prost_types::Timestamp) -> Self {
         DateTime {
             seconds: value.seconds,
             nanoseconds: value.nanos as u32,
@@ -39,9 +39,9 @@ impl From<tit::extra::Timestamp> for DateTime {
     }
 }
 
-impl From<DateTime> for tit::extra::Timestamp {
+impl From<DateTime> for tit::prost_types::Timestamp {
     fn from(value: DateTime) -> Self {
-        tit::extra::Timestamp {
+        tit::prost_types::Timestamp {
             seconds: value.seconds,
             nanos: value.nanoseconds as i32,
         }
