@@ -1,3 +1,5 @@
+extern crate core;
+
 mod cached_market_instruments;
 mod client;
 pub mod enums;
@@ -11,6 +13,5 @@ pub use client::{TinkoffInvest, TinkoffInvestBuilder};
 pub use error::TinkoffInvestError;
 pub use interceptor::TinkoffInvestInterceptor;
 
-pub mod extra {
-    pub use chrono;
-}
+// re-export
+pub use chrono;

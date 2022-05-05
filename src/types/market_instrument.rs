@@ -8,7 +8,7 @@ pub struct MarketInstrument {
     pub isin: types::Isin,
     pub ticker: types::Ticker,
     pub class_code: enums::ClassCode,
-    pub kind: enums::MarketInstrumentKind,
+    pub instrument_type: enums::InstrumentType,
     pub name: String,
     pub lot: u64,
     pub currency: enums::Currency,
@@ -22,12 +22,12 @@ pub struct MarketInstrument {
 impl From<tit::Currency> for MarketInstrument {
     fn from(value: tit::Currency) -> Self {
         let trading_status = value.trading_status().into();
-        MarketInstrument {
+        Self {
             figi: value.figi.into(),
             isin: value.isin.into(),
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
-            kind: enums::MarketInstrumentKind::Currency,
+            instrument_type: enums::InstrumentType::Currency,
             name: value.name,
             lot: value.lot as u64,
             currency: value.currency.into(),
@@ -43,12 +43,12 @@ impl From<tit::Currency> for MarketInstrument {
 impl From<tit::Share> for MarketInstrument {
     fn from(value: tit::Share) -> Self {
         let trading_status = value.trading_status().into();
-        MarketInstrument {
+        Self {
             figi: value.figi.into(),
             isin: value.isin.into(),
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
-            kind: enums::MarketInstrumentKind::Share,
+            instrument_type: enums::InstrumentType::Share,
             name: value.name,
             lot: value.lot as u64,
             currency: value.currency.into(),
@@ -67,9 +67,9 @@ impl traits::ToFigi for &MarketInstrument {
     }
 }
 
-impl traits::ToMarketInstrumentKind for &MarketInstrument {
-    fn to_market_instrument_kind(&self) -> enums::MarketInstrumentKind {
-        self.kind.clone()
+impl traits::ToInstrumentType for &MarketInstrument {
+    fn to_instrument_type(&self) -> enums::InstrumentType {
+        self.instrument_type.clone()
     }
 }
 

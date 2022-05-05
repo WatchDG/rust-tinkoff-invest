@@ -7,7 +7,7 @@ use tinkoff_invest_types::{
     operations_service_client::OperationsServiceClient, orders_service_client::OrdersServiceClient,
     users_service_client::UsersServiceClient, GetAccountsRequest, GetCandlesRequest,
     GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType, InstrumentRequest,
-    InstrumentsRequest, OperationsRequest, PostOrderRequest,
+    InstrumentsRequest, OperationsRequest, PortfolioRequest, PostOrderRequest,
 };
 use tonic::{
     codegen::InterceptedService,
@@ -15,7 +15,6 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
-use crate::traits::ToFigi;
 use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 
 pub struct TinkoffInvestBuilder<I>
@@ -203,11 +202,11 @@ where
 
     pub async fn market_instruments(
         &mut self,
-        instrument_kind: enums::MarketInstrumentKind,
+        instrument_kind: enums::InstrumentType,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         match instrument_kind {
-            enums::MarketInstrumentKind::Share => self.shares().await,
-            enums::MarketInstrumentKind::Currency => self.currencies().await,
+            enums::InstrumentType::Share => self.shares().await,
+            enums::InstrumentType::Currency => self.currencies().await,
         }
     }
 
@@ -216,11 +215,11 @@ where
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
-        T: traits::ToMarketInstrumentKind + traits::ToFigi,
+        T: traits::ToInstrumentType + traits::ToFigi,
     {
-        match instrument.to_market_instrument_kind() {
-            enums::MarketInstrumentKind::Share => self.share(instrument).await,
-            enums::MarketInstrumentKind::Currency => self.currency(instrument).await,
+        match instrument.to_instrument_type() {
+            enums::InstrumentType::Share => self.share(instrument).await,
+            enums::InstrumentType::Currency => self.currency(instrument).await,
         }
     }
 
@@ -240,9 +239,9 @@ where
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
-        T: traits::ToMarketInstrumentKind + traits::ToFigi,
+        T: traits::ToInstrumentType + traits::ToFigi,
     {
-        if instrument.to_market_instrument_kind() != enums::MarketInstrumentKind::Share {
+        if instrument.to_instrument_type() != enums::InstrumentType::Share {
             return Err(TinkoffInvestError::MarketInstrumentKindNotShare.into());
         }
         let client = self
@@ -274,9 +273,9 @@ where
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
-        T: traits::ToMarketInstrumentKind + traits::ToFigi,
+        T: traits::ToInstrumentType + traits::ToFigi,
     {
-        if instrument.to_market_instrument_kind() != enums::MarketInstrumentKind::Currency {
+        if instrument.to_instrument_type() != enums::InstrumentType::Currency {
             return Err(TinkoffInvestError::MarketInstrumentKindNotCurrency.into());
         }
         let client = self
@@ -353,7 +352,7 @@ where
         depth: u32,
     ) -> Result<types::OrderBook, Box<dyn Error>>
     where
-        T: ToFigi,
+        T: traits::ToFigi,
     {
         let request = GetOrderBookRequest {
             figi: instrument.to_figi().into(),
@@ -418,6 +417,33 @@ where
             .clone();
         self.operations_on_account(&account, instrument, state, from, to)
             .await
+    }
+
+    pub async fn portfolio_on_account<T>(
+        &mut self,
+        account: T,
+    ) -> Result<types::Portfolio, Box<dyn Error>>
+    where
+        T: traits::ToAccountId,
+    {
+        let request = PortfolioRequest {
+            account_id: account.to_account_id(),
+        };
+        let client = self
+            .operations_service_client
+            .as_mut()
+            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
+        let portfolio = client.get_portfolio(request).await?.into_inner().into();
+        Ok(portfolio)
+    }
+
+    pub async fn portfolio(&mut self) -> Result<types::Portfolio, Box<dyn Error>> {
+        let account = self
+            .account
+            .as_ref()
+            .ok_or(TinkoffInvestError::AccountNotSet)?
+            .clone();
+        self.portfolio_on_account(&account).await
     }
 
     #[inline]

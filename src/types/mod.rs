@@ -9,6 +9,8 @@ mod money;
 mod operation;
 mod order;
 mod order_book;
+mod portfolio;
+mod portfolio_position;
 mod ticker;
 mod trade;
 
@@ -23,5 +25,7 @@ pub use money::{Money, MoneyValue};
 pub use operation::Operation;
 pub use order::Order;
 pub use order_book::{OrderBook, OrderBookOrder};
+pub use portfolio::Portfolio;
+pub use portfolio_position::PortfolioPosition;
 pub use ticker::Ticker;
 pub use trade::Trade;

@@ -12,6 +12,7 @@ use tinkoff_invest::TinkoffInvest;
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
+    
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let accounts = tinkoff.accounts().await?;
@@ -30,6 +31,7 @@ use tinkoff_invest::{enums::MarketInstrumentKind, TinkoffInvest};
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
+    
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let market_instruments = tinkoff
@@ -50,6 +52,7 @@ use tinkoff_invest::{enums::CandlestickInterval, extra::chrono, types::Figi, Tin
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
+    
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let figi = Figi::from("BBG004730N88");
@@ -73,6 +76,7 @@ use tinkoff_invest::{types::Figi, TinkoffInvest};
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
+    
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let figi = Figi::from("BBG004730N88");
@@ -92,6 +96,7 @@ use tinkoff_invest::{enums::OperationState, extra::chrono, types::Figi, TinkoffI
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
+    
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let accounts = tinkoff.accounts().await?;
@@ -113,6 +118,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### get portfolio
+
+```rust
+use tinkoff_invest::TinkoffInvest;
+
+#[tokio::main()]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = "...";
+    
+    let mut tinkoff = TinkoffInvest::new(token.into())?;
+
+    let accounts = tinkoff.accounts().await?;
+
+    let first_account = accounts.get(0).unwrap().clone();
+
+    tinkoff.set_account(Some(first_account));
+
+    let portfolio = tinkoff.portfolio().await?;
+
+    println!("{:?}", portfolio);
+
+    Ok(())
+}
+```
+
 ## Cached Market Instruments
 
 ### example
@@ -127,6 +157,7 @@ use tinkoff_invest::{
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
+    
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let market_instruments = tinkoff
