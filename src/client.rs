@@ -106,6 +106,7 @@ where
         } else {
             None
         };
+
         let instruments_service_client = if self.enable_instruments_service_client {
             Some(InstrumentsServiceClient::with_interceptor(
                 channel.clone(),
@@ -202,9 +203,9 @@ where
 
     pub async fn market_instruments(
         &mut self,
-        instrument_kind: enums::InstrumentType,
+        instrument_type: enums::InstrumentType,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
-        match instrument_kind {
+        match instrument_type {
             enums::InstrumentType::Share => self.shares().await,
             enums::InstrumentType::Currency => self.currencies().await,
         }
@@ -385,7 +386,7 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let mut request = OperationsRequest {
-            account_id: account.to_account_id(),
+            account_id: account.to_account_id().into(),
             figi: instrument.to_figi().into(),
             state: 0,
             from,
@@ -427,7 +428,7 @@ where
         T: traits::ToAccountId,
     {
         let request = PortfolioRequest {
-            account_id: account.to_account_id(),
+            account_id: account.to_account_id().into(),
         };
         let client = self
             .operations_service_client
@@ -463,7 +464,7 @@ where
         let order_id = order_id.unwrap_or_else(|| Uuid::new_v4().to_string());
         let mut request = PostOrderRequest {
             order_id,
-            account_id: account.to_account_id(),
+            account_id: account.to_account_id().into(),
             figi: instrument.to_figi().into(),
             quantity: quantity as i64,
             price: Some(price.into()),

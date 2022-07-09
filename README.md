@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### get market instruments
 
 ```rust
-use tinkoff_invest::{enums::MarketInstrumentKind, TinkoffInvest};
+use tinkoff_invest::{enums::InstrumentType, TinkoffInvest};
 
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let market_instruments = tinkoff
-        .market_instruments(MarketInstrumentKind::Share)
+        .market_instruments(InstrumentType::Share)
         .await?;
 
     println!("{:?}", market_instruments);
@@ -149,7 +149,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use tinkoff_invest::{
-    enums::{ClassCode, MarketInstrumentKind},
+    enums::{ClassCode, InstrumentType},
     types::{Figi, Ticker},
     CachedMarketInstruments, TinkoffInvest,
 };
@@ -161,7 +161,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tinkoff = TinkoffInvest::new(token.into())?;
 
     let market_instruments = tinkoff
-        .market_instruments(MarketInstrumentKind::Share)
+        .market_instruments(InstrumentType::Share)
         .await?;
 
     let cached_market_instruments = CachedMarketInstruments::from(market_instruments);

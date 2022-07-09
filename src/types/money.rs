@@ -36,6 +36,7 @@ impl From<MoneyValue> for tit::Quotation {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Money {
     pub value: MoneyValue,
+    /// Валюта
     pub currency: enums::Currency,
 }
 

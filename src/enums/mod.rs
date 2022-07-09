@@ -1,6 +1,6 @@
 mod account_access_level;
-mod account_kind;
 mod account_status;
+mod account_type;
 mod candlestick_interval;
 mod class_code;
 mod currency;
@@ -14,15 +14,15 @@ mod order_status;
 mod trading_status;
 
 pub use account_access_level::AccountAccessLevel;
-pub use account_kind::AccountKind;
 pub use account_status::AccountStatus;
+pub use account_type::AccountType;
 pub use candlestick_interval::CandlestickInterval;
 pub use class_code::ClassCode;
 pub use currency::Currency;
 pub use exchange::Exchange;
 pub use instrument_type::InstrumentType;
 pub use operation_state::OperationState;
-pub use operation_type::OperationKind;
+pub use operation_type::OperationType;
 pub use order_direction::OrderDirection;
 pub use order_kind::OrderKind;
 pub use order_status::OrderStatus;

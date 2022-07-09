@@ -23,7 +23,7 @@ pub struct Operation {
     /// Состояние операции.
     pub state: enums::OperationState,
     /// Тип операции.
-    pub kind: enums::OperationKind,
+    pub operation_type: enums::OperationType,
     /// Сделки операции.
     pub trades: Vec<types::Trade>,
     /// Дата и время совершения операции.
@@ -38,7 +38,7 @@ impl From<tit::Operation> for Operation {
             None
         };
         let state = value.state().into();
-        let kind = value.operation_type().into();
+        let operation_type = value.operation_type().into();
         Operation {
             id: value.id,
             parent_id,
@@ -49,7 +49,7 @@ impl From<tit::Operation> for Operation {
             state,
             lots: value.quantity as u64,
             lots_rest: value.quantity_rest as u64,
-            kind,
+            operation_type,
             trades: value.trades.iter().map(|x| x.clone().into()).collect(),
             datetime: value.date.map(|x| x.into()),
         }

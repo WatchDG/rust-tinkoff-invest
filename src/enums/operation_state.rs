@@ -5,14 +5,16 @@ pub enum OperationState {
     Unspecified,
     Executed,
     Canceled,
+    Progress,
 }
 
 impl From<tit::OperationState> for OperationState {
     fn from(value: tit::OperationState) -> Self {
         match value {
-            tinkoff_invest_types::OperationState::Unspecified => OperationState::Unspecified,
-            tinkoff_invest_types::OperationState::Executed => OperationState::Executed,
-            tinkoff_invest_types::OperationState::Canceled => OperationState::Canceled,
+            tit::OperationState::Unspecified => OperationState::Unspecified,
+            tit::OperationState::Executed => OperationState::Executed,
+            tit::OperationState::Canceled => OperationState::Canceled,
+            tit::OperationState::Progress => OperationState::Progress,
         }
     }
 }
@@ -20,9 +22,10 @@ impl From<tit::OperationState> for OperationState {
 impl From<OperationState> for tit::OperationState {
     fn from(value: OperationState) -> Self {
         match value {
-            OperationState::Unspecified => tinkoff_invest_types::OperationState::Unspecified,
-            OperationState::Executed => tinkoff_invest_types::OperationState::Executed,
-            OperationState::Canceled => tinkoff_invest_types::OperationState::Canceled,
+            OperationState::Unspecified => tit::OperationState::Unspecified,
+            OperationState::Executed => tit::OperationState::Executed,
+            OperationState::Canceled => tit::OperationState::Canceled,
+            OperationState::Progress => tit::OperationState::Progress,
         }
     }
 }
