@@ -177,6 +177,7 @@ impl TinkoffInvest<TinkoffInvestInterceptor> {
         builder.enable_instruments_service_client(true);
         builder.enable_market_data_service_client(true);
         builder.enable_operations_service_client(true);
+        builder.enable_orders_service_client(true);
         builder.build()
     }
 }
