@@ -19,7 +19,7 @@ impl From<f64> for MoneyValue {
     fn from(v: f64) -> Self {
         MoneyValue {
             units: v.trunc() as i64,
-            nano: (v * 1e9 - v.trunc() * 1e9) as i32,
+            nano: ((v * 1e10 - v.trunc() * 1e10) / 10f64) as i32,
         }
     }
 }
