@@ -15,6 +15,15 @@ impl MoneyValue {
     }
 }
 
+impl From<f64> for MoneyValue {
+    fn from(v: f64) -> Self {
+        MoneyValue {
+            units: v.trunc() as i64,
+            nano: (v * 1e9 - v.trunc() * 1e9) as i32,
+        }
+    }
+}
+
 impl From<tit::Quotation> for MoneyValue {
     fn from(value: tit::Quotation) -> Self {
         MoneyValue {

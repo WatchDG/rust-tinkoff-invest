@@ -8,12 +8,12 @@ use crate::{enums, types, TinkoffInvestError};
 pub struct Candlestick {
     pub figi: Option<types::Figi>,
     pub interval: Option<enums::CandlestickInterval>,
+    pub datetime: Option<types::DateTime>,
     pub open: Option<types::MoneyValue>,
     pub high: Option<types::MoneyValue>,
     pub low: Option<types::MoneyValue>,
     pub close: Option<types::MoneyValue>,
     pub volume: u64,
-    pub datetime: Option<types::DateTime>,
     pub is_complete: bool,
 }
 
