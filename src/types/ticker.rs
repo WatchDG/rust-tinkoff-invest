@@ -1,4 +1,3 @@
-use crate::types::MarketInstrument;
 use crate::{traits, types};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -30,7 +29,7 @@ impl From<Ticker> for String {
 }
 
 impl From<types::MarketInstrument> for Ticker {
-    fn from(value: MarketInstrument) -> Self {
+    fn from(value: types::MarketInstrument) -> Self {
         value.ticker
     }
 }

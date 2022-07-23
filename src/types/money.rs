@@ -11,7 +11,7 @@ pub struct MoneyValue {
 impl MoneyValue {
     #[inline]
     pub fn as_f64(&self) -> f64 {
-        self.units as f64 + (self.nano as f64) / 1e9
+        (self.units as f64 * 1e9 + self.nano as f64) / 1e9
     }
 }
 
