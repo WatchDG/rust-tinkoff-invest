@@ -12,6 +12,7 @@ pub enum TinkoffInvestError {
     OrdersServiceClientNotInit,
     MarketInstrumentKindNotCurrency,
     MarketInstrumentKindNotShare,
+    MarketInstrumentKindNotFuture,
     CandlestickFigiNotSet,
     CandlestickIntervalNotSet,
     CandlestickPriceOpenNotSet,

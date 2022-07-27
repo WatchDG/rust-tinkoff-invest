@@ -5,7 +5,7 @@ use crate::{enums, traits, types};
 #[derive(Debug, Clone, PartialEq)]
 pub struct MarketInstrument {
     pub figi: types::Figi,
-    pub isin: types::Isin,
+    pub isin: Option<types::Isin>,
     pub ticker: types::Ticker,
     pub class_code: enums::ClassCode,
     pub instrument_type: enums::InstrumentType,
@@ -24,7 +24,7 @@ impl From<tit::Currency> for MarketInstrument {
         let trading_status = value.trading_status().into();
         Self {
             figi: value.figi.into(),
-            isin: value.isin.into(),
+            isin: Some(value.isin.into()),
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
             instrument_type: enums::InstrumentType::Currency,
@@ -45,10 +45,31 @@ impl From<tit::Share> for MarketInstrument {
         let trading_status = value.trading_status().into();
         Self {
             figi: value.figi.into(),
-            isin: value.isin.into(),
+            isin: Some(value.isin.into()),
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
             instrument_type: enums::InstrumentType::Share,
+            name: value.name,
+            lot_size: value.lot as u64,
+            currency: value.currency.into(),
+            min_price_increment: value.min_price_increment.map(|x| x.into()),
+            trading_status,
+            is_api_trade_available: value.api_trade_available_flag,
+            is_buy_available: value.buy_available_flag,
+            is_sell_available: value.sell_available_flag,
+        }
+    }
+}
+
+impl From<tit::Future> for MarketInstrument {
+    fn from(value: tit::Future) -> Self {
+        let trading_status = value.trading_status().into();
+        Self {
+            figi: value.figi.into(),
+            isin: None,
+            ticker: value.ticker.into(),
+            class_code: value.class_code.into(),
+            instrument_type: enums::InstrumentType::Future,
             name: value.name,
             lot_size: value.lot as u64,
             currency: value.currency.into(),

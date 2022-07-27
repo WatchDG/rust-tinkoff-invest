@@ -2,6 +2,7 @@
 pub enum InstrumentType {
     Currency,
     Share,
+    Future,
 }
 
 impl From<String> for InstrumentType {
@@ -9,6 +10,7 @@ impl From<String> for InstrumentType {
         match value.to_lowercase().as_ref() {
             "currency" => InstrumentType::Currency,
             "share" => InstrumentType::Share,
+            "future" => InstrumentType::Future,
             _ => panic!("{:?}", value),
         }
     }
