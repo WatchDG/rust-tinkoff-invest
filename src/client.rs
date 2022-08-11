@@ -7,7 +7,7 @@ use tinkoff_invest_types::{
     operations_service_client::OperationsServiceClient, orders_service_client::OrdersServiceClient,
     users_service_client::UsersServiceClient, GetAccountsRequest, GetCandlesRequest,
     GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType, InstrumentRequest,
-    InstrumentsRequest, OperationsRequest, PortfolioRequest, PostOrderRequest,
+    InstrumentsRequest, OperationsRequest, PortfolioRequest, PositionsRequest, PostOrderRequest,
 };
 use tonic::{
     codegen::InterceptedService,
@@ -482,6 +482,33 @@ where
             .ok_or(TinkoffInvestError::AccountNotSet)?
             .clone();
         self.portfolio_on_account(&account).await
+    }
+
+    pub async fn positions_on_account<T>(
+        &mut self,
+        account: T,
+    ) -> Result<types::Positions, Box<dyn Error>>
+    where
+        T: traits::ToAccountId,
+    {
+        let request = PositionsRequest {
+            account_id: account.to_account_id().into(),
+        };
+        let client = self
+            .operations_service_client
+            .as_mut()
+            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
+        let positions = client.get_positions(request).await?.into_inner().into();
+        Ok(positions)
+    }
+
+    pub async fn positions(&mut self) -> Result<types::Positions, Box<dyn Error>> {
+        let account = self
+            .account
+            .as_ref()
+            .ok_or(TinkoffInvestError::AccountNotSet)?
+            .clone();
+        self.positions_on_account(&account).await
     }
 
     #[inline]

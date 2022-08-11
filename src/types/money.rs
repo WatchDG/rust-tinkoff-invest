@@ -1,3 +1,4 @@
+use std::ops::Add;
 use tinkoff_invest_types as tit;
 
 use crate::enums;
@@ -12,6 +13,16 @@ impl MoneyValue {
     #[inline]
     pub fn as_f64(&self) -> f64 {
         (self.units as f64 * 1e9 + self.nano as f64) / 1e9
+    }
+}
+
+impl Add for MoneyValue {
+    type Output = MoneyValue;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            units: self.units + rhs.units + ((self.nano + rhs.nano) / 1_000_000_000) as i64,
+            nano: (self.nano + rhs.nano) % 1_000_000_000,
+        }
     }
 }
 
@@ -64,6 +75,18 @@ impl From<tit::MoneyValue> for Money {
                 nano: value.nano,
             },
             currency: value.currency.into(),
+        }
+    }
+}
+
+impl From<&tit::MoneyValue> for Money {
+    fn from(value: &tit::MoneyValue) -> Self {
+        Money {
+            value: MoneyValue {
+                units: value.units,
+                nano: value.nano,
+            },
+            currency: value.currency.clone().into(),
         }
     }
 }

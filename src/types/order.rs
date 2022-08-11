@@ -41,21 +41,15 @@ impl From<tit::PostOrderResponse> for Order {
             direction,
             lots_requested: value.lots_requested as u64,
             lots_executed: value.lots_executed as u64,
-            initial_price: value
-                .initial_security_price
-                .as_ref()
-                .map(|x| x.clone().into()),
+            initial_price: value.initial_security_price.as_ref().map(|x| x.into()),
             initial_price_pt: value
                 .initial_order_price_pt
                 .as_ref()
                 .map(|x| x.clone().into()),
-            initial_amount: value.initial_order_price.as_ref().map(|x| x.clone().into()),
-            executed_amount: value
-                .executed_order_price
-                .as_ref()
-                .map(|x| x.clone().into()),
-            initial_commission: value.initial_commission.as_ref().map(|x| x.clone().into()),
-            executed_commission: value.executed_commission.as_ref().map(|x| x.clone().into()),
+            initial_amount: value.initial_order_price.as_ref().map(|x| x.into()),
+            executed_amount: value.executed_order_price.as_ref().map(|x| x.into()),
+            initial_commission: value.initial_commission.as_ref().map(|x| x.into()),
+            executed_commission: value.executed_commission.as_ref().map(|x| x.into()),
             status,
         }
     }
@@ -74,18 +68,12 @@ impl From<tit::OrderState> for Order {
             direction,
             lots_requested: value.lots_requested as u64,
             lots_executed: value.lots_executed as u64,
-            initial_price: value
-                .initial_security_price
-                .as_ref()
-                .map(|x| x.clone().into()),
+            initial_price: value.initial_security_price.as_ref().map(|x| x.into()),
             initial_price_pt: None,
-            initial_amount: value.initial_order_price.as_ref().map(|x| x.clone().into()),
-            executed_amount: value
-                .executed_order_price
-                .as_ref()
-                .map(|x| x.clone().into()),
-            initial_commission: value.initial_commission.as_ref().map(|x| x.clone().into()),
-            executed_commission: value.executed_commission.as_ref().map(|x| x.clone().into()),
+            initial_amount: value.initial_order_price.as_ref().map(|x| x.into()),
+            executed_amount: value.executed_order_price.as_ref().map(|x| x.into()),
+            initial_commission: value.initial_commission.as_ref().map(|x| x.into()),
+            executed_commission: value.executed_commission.as_ref().map(|x| x.into()),
             status,
         }
     }
