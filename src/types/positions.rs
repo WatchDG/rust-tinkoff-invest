@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use tinkoff_invest_types as tit;
 
-use crate::types::MoneyValue;
 use crate::{enums, types};
 
 #[derive(Debug, Clone)]
 pub struct Positions {
-    money: HashMap<enums::Currency, MoneyPosition>,
+    pub money: HashMap<enums::Currency, MoneyPosition>,
 }
 
 #[derive(Debug, Clone)]
@@ -26,7 +25,7 @@ impl From<tit::PositionsResponse> for Positions {
         for money_position in money_available.iter() {
             let position = MoneyPosition {
                 available: money_position.value.clone(),
-                blocked: MoneyValue::from(0f64),
+                blocked: types::MoneyValue::from(0f64),
                 total: money_position.value.clone(),
             };
             money.insert(money_position.currency.clone(), position);
@@ -38,7 +37,7 @@ impl From<tit::PositionsResponse> for Positions {
                 position.total = position.total.clone() + position.blocked.clone();
             } else {
                 let position = MoneyPosition {
-                    available: MoneyValue::from(0f64),
+                    available: types::MoneyValue::from(0f64),
                     blocked: money_position.value.clone(),
                     total: money_position.value.clone(),
                 };
