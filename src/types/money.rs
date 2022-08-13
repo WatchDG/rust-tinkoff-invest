@@ -26,6 +26,12 @@ impl Add for MoneyValue {
     }
 }
 
+impl From<i64> for MoneyValue {
+    fn from(v: i64) -> Self {
+        Self { units: v, nano: 0 }
+    }
+}
+
 impl From<f64> for MoneyValue {
     fn from(v: f64) -> Self {
         MoneyValue {
