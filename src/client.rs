@@ -10,6 +10,7 @@ use tinkoff_invest_types::{
     InstrumentsRequest, OperationsRequest, PortfolioRequest, PositionsRequest, PostOrderRequest,
 };
 use tonic::{
+    codec::CompressionEncoding,
     codegen::InterceptedService,
     service::Interceptor,
     transport::{Channel, ClientTlsConfig, Endpoint},
@@ -99,40 +100,46 @@ where
             .interceptor
             .ok_or(TinkoffInvestError::InterceptorNotSet)?;
         let users_service_client = if self.enable_users_service_client {
-            Some(UsersServiceClient::with_interceptor(
-                channel.clone(),
-                interceptor.clone(),
-            ))
+            let mut client =
+                UsersServiceClient::with_interceptor(channel.clone(), interceptor.clone());
+            client = client.send_compressed(CompressionEncoding::Gzip);
+            client = client.accept_compressed(CompressionEncoding::Gzip);
+            Some(client)
         } else {
             None
         };
-
         let instruments_service_client = if self.enable_instruments_service_client {
-            Some(InstrumentsServiceClient::with_interceptor(
-                channel.clone(),
-                interceptor.clone(),
-            ))
+            let mut client =
+                InstrumentsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
+            client = client.send_compressed(CompressionEncoding::Gzip);
+            client = client.accept_compressed(CompressionEncoding::Gzip);
+            Some(client)
         } else {
             None
         };
         let market_data_service_client = if self.enable_market_data_service_client {
-            Some(MarketDataServiceClient::with_interceptor(
-                channel.clone(),
-                interceptor.clone(),
-            ))
+            let mut client =
+                MarketDataServiceClient::with_interceptor(channel.clone(), interceptor.clone());
+            client = client.send_compressed(CompressionEncoding::Gzip);
+            client = client.accept_compressed(CompressionEncoding::Gzip);
+            Some(client)
         } else {
             None
         };
         let operations_service_client = if self.enable_operations_service_client {
-            Some(OperationsServiceClient::with_interceptor(
-                channel.clone(),
-                interceptor.clone(),
-            ))
+            let mut client =
+                OperationsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
+            client = client.send_compressed(CompressionEncoding::Gzip);
+            client = client.accept_compressed(CompressionEncoding::Gzip);
+            Some(client)
         } else {
             None
         };
         let orders_service_client = if self.enable_orders_service_client {
-            Some(OrdersServiceClient::with_interceptor(channel, interceptor))
+            let mut client = OrdersServiceClient::with_interceptor(channel, interceptor);
+            client = client.send_compressed(CompressionEncoding::Gzip);
+            client = client.accept_compressed(CompressionEncoding::Gzip);
+            Some(client)
         } else {
             None
         };
@@ -498,7 +505,8 @@ where
             .operations_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
-        let positions = client.get_positions(request).await?.into_inner().into();
+        let response = client.get_positions(request).await?;
+        let positions = response.into_inner().into();
         Ok(positions)
     }
 
