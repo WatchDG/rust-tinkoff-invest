@@ -1,18 +1,23 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TinkoffInvestError {
     InterceptorNotSet,
+    HandlerNotSet,
     AccountNotSet,
+    ChannelNotSet,
     UsersServiceClientNotInit,
     InstrumentsServiceClientNotInit,
     MarketDataServiceClientNotInit,
+    MarketDataStreamServiceClientNotInit,
     OperationsServiceClientNotInit,
+    OperationsStreamServiceClientNotInit,
     OrdersServiceClientNotInit,
-    MarketInstrumentKindNotCurrency,
-    MarketInstrumentKindNotShare,
-    MarketInstrumentKindNotFuture,
+    OrdersStreamServiceClientNotInit,
+    MarketInstrumentTypeNotCurrency,
+    MarketInstrumentTypeNotShare,
+    MarketInstrumentTypeNotFuture,
     CandlestickFigiNotSet,
     CandlestickIntervalNotSet,
     CandlestickPriceOpenNotSet,
@@ -40,11 +45,20 @@ impl Display for TinkoffInvestError {
             TinkoffInvestError::MarketDataServiceClientNotInit => {
                 write!(f, "Market data service client not init.")
             }
+            TinkoffInvestError::MarketDataStreamServiceClientNotInit => {
+                write!(f, "Market data stream service client not init.")
+            }
             TinkoffInvestError::OperationsServiceClientNotInit => {
                 write!(f, "Operations service client not init.")
             }
+            TinkoffInvestError::OperationsStreamServiceClientNotInit => {
+                write!(f, "Operations stream service client not init.")
+            }
             TinkoffInvestError::OrdersServiceClientNotInit => {
                 write!(f, "Orders service client not init.")
+            }
+            TinkoffInvestError::OrdersStreamServiceClientNotInit => {
+                write!(f, "Orders stream service client not init.")
             }
             _ => {
                 write!(f, "")

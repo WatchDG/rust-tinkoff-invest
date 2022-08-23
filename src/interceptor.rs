@@ -1,7 +1,7 @@
 use tonic::{service::Interceptor, Request, Status};
 use uuid::Uuid;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TinkoffInvestInterceptor {
     token: String,
 }

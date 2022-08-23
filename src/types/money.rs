@@ -3,7 +3,7 @@ use tinkoff_invest_types as tit;
 
 use crate::enums;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MoneyValue {
     pub units: i64,
     pub nano: i32,
@@ -59,7 +59,7 @@ impl From<MoneyValue> for tit::Quotation {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Money {
     pub value: MoneyValue,
     /// Валюта

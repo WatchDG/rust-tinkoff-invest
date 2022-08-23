@@ -3,7 +3,7 @@ use tinkoff_invest_types as tit;
 use crate::types;
 
 /// Книга заявок.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OrderBook {
     /// FIGI инструмента книги заявок.
     pub figi: types::Figi,
@@ -25,7 +25,7 @@ impl From<tit::GetOrderBookResponse> for OrderBook {
     fn from(value: tit::GetOrderBookResponse) -> Self {
         let bid_orders = value.bids.iter().map(|x| x.clone().into()).collect();
         let ask_orders = value.asks.iter().map(|x| x.clone().into()).collect();
-        OrderBook {
+        Self {
             figi: value.figi.into(),
             depth: value.depth as u32,
             bid_orders,
@@ -38,7 +38,24 @@ impl From<tit::GetOrderBookResponse> for OrderBook {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl From<tit::OrderBook> for OrderBook {
+    fn from(value: tit::OrderBook) -> Self {
+        let bid_orders = value.bids.iter().map(|x| x.clone().into()).collect();
+        let ask_orders = value.asks.iter().map(|x| x.clone().into()).collect();
+        Self {
+            figi: value.figi.into(),
+            depth: value.depth as u32,
+            bid_orders,
+            ask_orders,
+            last_trade_price: None,
+            close_trade_price: None,
+            limit_price_up: value.limit_up.map(|x| x.into()),
+            limit_price_down: value.limit_down.map(|x| x.into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OrderBookOrder {
     /// Цена лота инструмента.
     pub price: Option<types::MoneyValue>,

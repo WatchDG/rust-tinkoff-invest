@@ -4,11 +4,7 @@ use uuid::Uuid;
 use tinkoff_invest_types::{
     self, instruments_service_client::InstrumentsServiceClient,
     market_data_service_client::MarketDataServiceClient,
-    market_data_stream_service_client::MarketDataStreamServiceClient,
-    operations_service_client::OperationsServiceClient,
-    operations_stream_service_client::OperationsStreamServiceClient,
-    orders_service_client::OrdersServiceClient,
-    orders_stream_service_client::OrdersStreamServiceClient,
+    operations_service_client::OperationsServiceClient, orders_service_client::OrdersServiceClient,
     users_service_client::UsersServiceClient, GetAccountsRequest, GetCandlesRequest,
     GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType, InstrumentRequest,
     InstrumentsRequest, OperationsRequest, PortfolioRequest, PositionsRequest, PostOrderRequest,
@@ -31,11 +27,8 @@ where
     enable_users_service_client: bool,
     enable_instruments_service_client: bool,
     enable_market_data_service_client: bool,
-    enable_market_data_stream_service_client: bool,
     enable_operations_service_client: bool,
-    enable_operations_stream_service_client: bool,
     enable_orders_service_client: bool,
-    enable_orders_stream_service_client: bool,
 }
 
 impl<I> TinkoffInvestBuilder<I>
@@ -53,11 +46,8 @@ where
             enable_users_service_client: false,
             enable_instruments_service_client: false,
             enable_market_data_service_client: false,
-            enable_market_data_stream_service_client: false,
             enable_operations_service_client: false,
-            enable_operations_stream_service_client: false,
             enable_orders_service_client: false,
-            enable_orders_stream_service_client: false,
         }
     }
 
@@ -92,20 +82,8 @@ where
     }
 
     #[inline]
-    pub fn enable_market_data_stream_service_client(&mut self, value: bool) -> &Self {
-        self.enable_market_data_stream_service_client = value;
-        self
-    }
-
-    #[inline]
     pub fn enable_operations_service_client(&mut self, value: bool) -> &Self {
         self.enable_operations_service_client = value;
-        self
-    }
-
-    #[inline]
-    pub fn enable_operations_stream_service_client(&mut self, value: bool) -> &Self {
-        self.enable_operations_stream_service_client = value;
         self
     }
 
@@ -116,14 +94,8 @@ where
     }
 
     #[inline]
-    pub fn enable_orders_stream_service_client(&mut self, value: bool) -> &Self {
-        self.enable_orders_stream_service_client = value;
-        self
-    }
-
-    #[inline]
-    pub fn build(self) -> Result<TinkoffInvest<I>, Box<dyn Error>> {
-        let channel = self.endpoint.connect_lazy();
+    pub async fn build(self) -> Result<TinkoffInvest<I>, Box<dyn Error>> {
+        let channel = self.endpoint.clone().connect().await?;
         let interceptor = self
             .interceptor
             .ok_or(TinkoffInvestError::InterceptorNotSet)?;
@@ -154,31 +126,9 @@ where
         } else {
             None
         };
-        let market_data_stream_service_client = if self.enable_market_data_stream_service_client {
-            let mut client = MarketDataStreamServiceClient::with_interceptor(
-                channel.clone(),
-                interceptor.clone(),
-            );
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            Some(client)
-        } else {
-            None
-        };
         let operations_service_client = if self.enable_operations_service_client {
             let mut client =
                 OperationsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            Some(client)
-        } else {
-            None
-        };
-        let operations_stream_service_client = if self.enable_operations_stream_service_client {
-            let mut client = OperationsStreamServiceClient::with_interceptor(
-                channel.clone(),
-                interceptor.clone(),
-            );
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
             Some(client)
@@ -194,24 +144,16 @@ where
         } else {
             None
         };
-        let orders_stream_service_client = if self.enable_orders_stream_service_client {
-            let mut client = OrdersStreamServiceClient::with_interceptor(channel, interceptor);
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            Some(client)
-        } else {
-            None
-        };
         Ok(TinkoffInvest {
             account: None,
+            endpoint: self.endpoint,
+            channel,
+            interceptor,
             users_service_client,
             instruments_service_client,
             market_data_service_client,
-            market_data_stream_service_client,
             operations_service_client,
-            operations_stream_service_client,
             orders_service_client,
-            orders_stream_service_client,
         })
     }
 }
@@ -230,32 +172,27 @@ where
     I: Interceptor,
 {
     account: Option<types::Account>,
+    pub(crate) endpoint: Endpoint,
+    pub(crate) channel: Channel,
+    pub(crate) interceptor: I,
     users_service_client: Option<UsersServiceClient<InterceptedService<Channel, I>>>,
     instruments_service_client: Option<InstrumentsServiceClient<InterceptedService<Channel, I>>>,
     market_data_service_client: Option<MarketDataServiceClient<InterceptedService<Channel, I>>>,
-    market_data_stream_service_client:
-        Option<MarketDataStreamServiceClient<InterceptedService<Channel, I>>>,
     operations_service_client: Option<OperationsServiceClient<InterceptedService<Channel, I>>>,
-    operations_stream_service_client:
-        Option<OperationsStreamServiceClient<InterceptedService<Channel, I>>>,
     orders_service_client: Option<OrdersServiceClient<InterceptedService<Channel, I>>>,
-    orders_stream_service_client: Option<OrdersStreamServiceClient<InterceptedService<Channel, I>>>,
 }
 
 impl TinkoffInvest<TinkoffInvestInterceptor> {
-    pub fn new(token: String) -> Result<Self, Box<dyn Error>> {
+    pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
         let interceptor = TinkoffInvestInterceptor::new(token);
         let mut builder = TinkoffInvestBuilder::new();
         builder.interceptor(Some(interceptor));
         builder.enable_users_service_client(true);
         builder.enable_instruments_service_client(true);
         builder.enable_market_data_service_client(true);
-        builder.enable_market_data_stream_service_client(true);
         builder.enable_operations_service_client(true);
-        builder.enable_operations_stream_service_client(true);
         builder.enable_orders_service_client(true);
-        builder.enable_orders_stream_service_client(true);
-        builder.build()
+        builder.build().await
     }
 }
 
@@ -323,7 +260,7 @@ where
         T: traits::ToInstrumentType + traits::ToFigi,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Share {
-            return Err(TinkoffInvestError::MarketInstrumentKindNotShare.into());
+            return Err(TinkoffInvestError::MarketInstrumentTypeNotShare.into());
         }
         let client = self
             .instruments_service_client
@@ -357,7 +294,7 @@ where
         T: traits::ToInstrumentType + traits::ToFigi,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Currency {
-            return Err(TinkoffInvestError::MarketInstrumentKindNotCurrency.into());
+            return Err(TinkoffInvestError::MarketInstrumentTypeNotCurrency.into());
         }
         let client = self
             .instruments_service_client
@@ -391,7 +328,7 @@ where
         T: traits::ToInstrumentType + traits::ToFigi,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Future {
-            return Err(TinkoffInvestError::MarketInstrumentKindNotFuture.into());
+            return Err(TinkoffInvestError::MarketInstrumentTypeNotFuture.into());
         }
         let client = self
             .instruments_service_client
@@ -461,10 +398,10 @@ where
             .collect())
     }
 
-    pub async fn order_book<T>(
+    pub async fn orderbook<T>(
         &mut self,
         instrument: T,
-        depth: u32,
+        depth: usize,
     ) -> Result<types::OrderBook, Box<dyn Error>>
     where
         T: traits::ToFigi,

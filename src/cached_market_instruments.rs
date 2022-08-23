@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::types::MarketInstrument;
 use crate::{enums, traits, types};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CachedMarketInstruments {
     hash_map_by_figi: HashMap<types::Figi, types::MarketInstrument>,
     hash_map_link_ticker_figi: HashMap<types::Ticker, HashSet<types::Figi>>,
@@ -95,8 +94,8 @@ impl Default for CachedMarketInstruments {
     }
 }
 
-impl From<Vec<MarketInstrument>> for CachedMarketInstruments {
-    fn from(values: Vec<MarketInstrument>) -> Self {
+impl From<Vec<types::MarketInstrument>> for CachedMarketInstruments {
+    fn from(values: Vec<types::MarketInstrument>) -> Self {
         let mut cached_market_instruments = CachedMarketInstruments::new();
         cached_market_instruments.append(values);
         cached_market_instruments

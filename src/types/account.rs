@@ -2,7 +2,7 @@ use tinkoff_invest_types as tit;
 
 use crate::{enums, traits, types};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountId(String);
 
 impl From<String> for AccountId {
@@ -19,7 +19,7 @@ impl From<AccountId> for String {
 
 impl traits::ToAccountId for AccountId {
     fn to_account_id(&self) -> AccountId {
-        return self.clone();
+        self.clone()
     }
 }
 

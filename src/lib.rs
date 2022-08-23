@@ -1,10 +1,9 @@
-extern crate core;
-
 mod cached_market_instruments;
 mod client;
 pub mod enums;
 mod error;
 mod interceptor;
+pub mod streams;
 pub mod traits;
 pub mod types;
 

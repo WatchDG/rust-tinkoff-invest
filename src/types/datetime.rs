@@ -1,7 +1,7 @@
 use chrono;
 use tinkoff_invest_types as tit;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DateTime {
     pub seconds: i64,
     pub nanoseconds: u32,

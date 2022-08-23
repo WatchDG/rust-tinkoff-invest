@@ -1,6 +1,6 @@
 use tinkoff_invest_types as tit;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountType {
     Unspecified,
     Tinkoff,

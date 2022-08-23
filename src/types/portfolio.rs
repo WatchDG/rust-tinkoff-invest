@@ -2,7 +2,7 @@ use tinkoff_invest_types as tit;
 
 use crate::types;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortfolioPosition {
     /// FIGI инструмента.
     pub figi: types::Figi,
@@ -19,7 +19,7 @@ impl From<tit::PortfolioPosition> for PortfolioPosition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Portfolio {
     pub positions: Vec<PortfolioPosition>,
 }

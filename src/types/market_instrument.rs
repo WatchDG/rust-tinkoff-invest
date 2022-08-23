@@ -2,7 +2,7 @@ use tinkoff_invest_types as tit;
 
 use crate::{enums, traits, types};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MarketInstrument {
     pub figi: types::Figi,
     pub isin: Option<types::Isin>,

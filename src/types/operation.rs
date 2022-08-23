@@ -2,7 +2,7 @@ use tinkoff_invest_types as tit;
 
 use crate::{enums, types};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Operation {
     /// Идентификатор операции.
     pub id: String,

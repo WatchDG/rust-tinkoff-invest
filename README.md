@@ -13,7 +13,7 @@ use tinkoff_invest::TinkoffInvest;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
     
-    let mut tinkoff = TinkoffInvest::new(token.into())?;
+    let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let accounts = tinkoff.accounts().await?;
     
@@ -32,7 +32,7 @@ use tinkoff_invest::{enums::InstrumentType, TinkoffInvest};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
     
-    let mut tinkoff = TinkoffInvest::new(token.into())?;
+    let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let market_instruments = tinkoff
         .market_instruments(InstrumentType::Share)
@@ -53,7 +53,7 @@ use tinkoff_invest::{enums::CandlestickInterval, extra::chrono, types::Figi, Tin
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
     
-    let mut tinkoff = TinkoffInvest::new(token.into())?;
+    let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let figi = Figi::from("BBG004730N88");
     let from = chrono::NaiveDate::from_ymd(2020, 1, 10);
@@ -77,7 +77,7 @@ use tinkoff_invest::{types::Figi, TinkoffInvest};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
     
-    let mut tinkoff = TinkoffInvest::new(token.into())?;
+    let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let figi = Figi::from("BBG004730N88");
     let order_book = tinkoff.order_book(&figi, 10).await?;
@@ -97,7 +97,7 @@ use tinkoff_invest::{enums::OperationState, extra::chrono, types::Figi, TinkoffI
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
     
-    let mut tinkoff = TinkoffInvest::new(token.into())?;
+    let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let accounts = tinkoff.accounts().await?;
 
@@ -127,7 +127,7 @@ use tinkoff_invest::TinkoffInvest;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
     
-    let mut tinkoff = TinkoffInvest::new(token.into())?;
+    let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let accounts = tinkoff.accounts().await?;
 
@@ -142,6 +142,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+## Streams
+
+### Market Data Stream
+
+```rust
+use tinkoff_invest::enums::{CandlestickInterval, MarketDataStreamData};
+use tinkoff_invest::streams::MarketDataStreamBuilder;
+use tinkoff_invest::types::Figi;
+use tinkoff_invest::TinkoffInvest;
+
+async fn market_data_handler(market_data: MarketDataStreamData) {
+    println!("market data: {:?}", market_data);
+}
+
+#[tokio::main()]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = "...";
+
+    let tinkoff = TinkoffInvest::new(token.into()).await?;
+
+    let mut market_data_stream_builder = MarketDataStreamBuilder::from(&tinkoff);
+    market_data_stream_builder.handler(market_data_handler);
+    let mut market_data_stream = market_data_stream_builder.build().await?;
+
+    market_data_stream
+        .subscribe_candlesticks(&[&Figi::from("BBG004730N88")], &CandlestickInterval::Min)
+        .await?;
+
+    market_data_stream
+        .subscribe_orderbook(&[&Figi::from("BBG004730N88")], 10)
+        .await?;
+
+    market_data_stream.task.await?;
+
+    Ok(())
+}
+```
+
 
 ## Cached Market Instruments
 
@@ -158,7 +197,7 @@ use tinkoff_invest::{
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
     
-    let mut tinkoff = TinkoffInvest::new(token.into())?;
+    let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let market_instruments = tinkoff
         .market_instruments(InstrumentType::Share)

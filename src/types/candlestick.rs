@@ -4,7 +4,7 @@ use tinkoff_invest_types as tit;
 
 use crate::{enums, types, TinkoffInvestError};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Candlestick {
     pub figi: Option<types::Figi>,
     pub interval: Option<enums::CandlestickInterval>,
@@ -33,7 +33,24 @@ impl From<tit::HistoricCandle> for Candlestick {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl From<tit::Candle> for Candlestick {
+    fn from(value: tit::Candle) -> Self {
+        let interval = value.interval().into();
+        Self {
+            figi: Some(value.figi.into()),
+            interval: Some(interval),
+            open: value.open.map(|x| x.into()),
+            high: value.high.map(|x| x.into()),
+            low: value.low.map(|x| x.into()),
+            close: value.close.map(|x| x.into()),
+            volume: value.volume as u64,
+            datetime: value.time.map(|x| x.into()),
+            is_complete: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StrictCandlestick {
     pub figi: types::Figi,
     pub interval: enums::CandlestickInterval,

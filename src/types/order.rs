@@ -2,7 +2,7 @@ use tinkoff_invest_types as tit;
 
 use crate::{enums, types};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Order {
     /// Идентификатор.
     pub id: String,

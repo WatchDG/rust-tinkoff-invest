@@ -1,6 +1,6 @@
 use tinkoff_invest_types as tit;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CandlestickInterval {
     Unspecified,
     Min,
@@ -32,6 +32,27 @@ impl From<CandlestickInterval> for tit::CandleInterval {
             CandlestickInterval::Min15 => tit::CandleInterval::CandleInterval15Min,
             CandlestickInterval::Hour => tit::CandleInterval::Hour,
             CandlestickInterval::Day => tit::CandleInterval::Day,
+        }
+    }
+}
+
+impl From<&CandlestickInterval> for tit::SubscriptionInterval {
+    fn from(v: &CandlestickInterval) -> Self {
+        match v {
+            CandlestickInterval::Unspecified => tit::SubscriptionInterval::Unspecified,
+            CandlestickInterval::Min => tit::SubscriptionInterval::OneMinute,
+            CandlestickInterval::Min5 => tit::SubscriptionInterval::FiveMinutes,
+            _ => panic!("subscription does not support interval: {:?}", v),
+        }
+    }
+}
+
+impl From<tit::SubscriptionInterval> for CandlestickInterval {
+    fn from(v: tit::SubscriptionInterval) -> Self {
+        match v {
+            tit::SubscriptionInterval::Unspecified => CandlestickInterval::Unspecified,
+            tit::SubscriptionInterval::OneMinute => CandlestickInterval::Min,
+            tit::SubscriptionInterval::FiveMinutes => CandlestickInterval::Min5,
         }
     }
 }

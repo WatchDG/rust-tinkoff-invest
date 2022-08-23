@@ -1,6 +1,6 @@
 use tinkoff_invest_types;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TradingStatus {
     Unspecified,
     NotAvailableForTrading,
