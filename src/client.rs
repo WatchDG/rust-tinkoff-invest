@@ -5,9 +5,10 @@ use tinkoff_invest_types::{
     self, instruments_service_client::InstrumentsServiceClient,
     market_data_service_client::MarketDataServiceClient,
     operations_service_client::OperationsServiceClient, orders_service_client::OrdersServiceClient,
-    users_service_client::UsersServiceClient, GetAccountsRequest, GetCandlesRequest,
-    GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType, InstrumentRequest,
-    InstrumentsRequest, OperationsRequest, PortfolioRequest, PositionsRequest, PostOrderRequest,
+    users_service_client::UsersServiceClient, CancelOrderRequest, GetAccountsRequest,
+    GetCandlesRequest, GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType,
+    InstrumentRequest, InstrumentsRequest, OperationsRequest, PortfolioRequest, PositionsRequest,
+    PostOrderRequest,
 };
 use tonic::{
     codec::CompressionEncoding,
@@ -16,6 +17,7 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
+use crate::types::DateTime;
 use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 
 pub struct TinkoffInvestBuilder<I>
@@ -576,5 +578,42 @@ where
             .clone();
         self.limit_order_on_account(&account, instrument, direction, quantity, price, order_id)
             .await
+    }
+
+    pub async fn cancel_order_on_account<T, K>(
+        &mut self,
+        account: T,
+        order: K,
+    ) -> Result<Option<DateTime>, Box<dyn Error>>
+    where
+        T: traits::ToAccountId,
+        K: traits::ToOrderId,
+    {
+        let request = CancelOrderRequest {
+            account_id: account.to_account_id().into(),
+            order_id: order.to_order_id().into(),
+        };
+        let client = self
+            .orders_service_client
+            .as_mut()
+            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
+        Ok(client
+            .cancel_order(request)
+            .await?
+            .into_inner()
+            .time
+            .map(|x| x.into()))
+    }
+
+    pub async fn cancel_order<T>(&mut self, order: T) -> Result<Option<DateTime>, Box<dyn Error>>
+    where
+        T: traits::ToOrderId,
+    {
+        let account = self
+            .account
+            .as_ref()
+            .ok_or(TinkoffInvestError::AccountNotSet)?
+            .clone();
+        self.cancel_order_on_account(&account, order).await
     }
 }
