@@ -580,6 +580,7 @@ where
             .await
     }
 
+    #[inline]
     pub async fn cancel_order_on_account<T, K>(
         &mut self,
         account: T,

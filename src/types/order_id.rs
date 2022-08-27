@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq, Eq)]
 pub struct OrderId(String);
 
 impl From<OrderId> for String {

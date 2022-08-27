@@ -1,6 +1,7 @@
 use tinkoff_invest_types as tit;
 
-use crate::{enums, types};
+use crate::types::OrderId;
+use crate::{enums, traits, types};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Order {
@@ -76,5 +77,11 @@ impl From<tit::OrderState> for Order {
             executed_commission: value.executed_commission.as_ref().map(|x| x.into()),
             status,
         }
+    }
+}
+
+impl traits::ToOrderId for Order {
+    fn to_order_id(&self) -> OrderId {
+        self.id.clone().into()
     }
 }
