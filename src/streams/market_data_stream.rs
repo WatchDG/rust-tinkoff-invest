@@ -1,7 +1,7 @@
 use std::error::Error;
-use std::future::Future;
 use tinkoff_invest_types as tit;
 use tinkoff_invest_types::market_data_stream_service_client::MarketDataStreamServiceClient;
+use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -11,34 +11,25 @@ use tonic::{service::Interceptor, transport::Channel};
 
 use crate::{enums, traits, TinkoffInvest, TinkoffInvestError};
 
-pub type MarketDataStreamHandler<T> = fn(enums::MarketDataStreamData) -> T;
-
-pub struct MarketDataStreamBuilder<I, H>
+pub struct MarketDataStreamBuilder<I>
 where
     I: Interceptor + Send + 'static,
 {
     endpoint: Option<Endpoint>,
     channel: Option<Channel>,
     interceptor: Option<I>,
-    handler: Option<MarketDataStreamHandler<H>>,
 }
 
-impl<I, H> MarketDataStreamBuilder<I, H>
+impl<I> MarketDataStreamBuilder<I>
 where
     I: Interceptor + Send + 'static,
-    H: Future<Output = ()> + Send + 'static,
 {
-    pub fn new() -> MarketDataStreamBuilder<I, H> {
+    pub fn new() -> MarketDataStreamBuilder<I> {
         Self {
             endpoint: None,
             channel: None,
             interceptor: None,
-            handler: None,
         }
-    }
-
-    pub fn handler(&mut self, handler: MarketDataStreamHandler<H>) {
-        self.handler = Some(handler);
     }
 
     pub async fn build(self) -> Result<MarketDataStream, Box<dyn Error>> {
@@ -52,10 +43,11 @@ where
         let interceptor = self
             .interceptor
             .ok_or(TinkoffInvestError::InterceptorNotSet)?;
-        let handler = self.handler.ok_or(TinkoffInvestError::HandlerNotSet)?;
         let mut client = MarketDataStreamServiceClient::with_interceptor(channel, interceptor);
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<tit::MarketDataRequest>();
         let receiver_stream = UnboundedReceiverStream::new(receiver);
+        let (broadcast_sender, _broadcast_receiver) = broadcast::channel(1);
+        let task_broadcast_sender = broadcast_sender.clone();
         let task = tokio::spawn(async move {
             let mut streaming = client
                 .market_data_stream(receiver_stream)
@@ -74,27 +66,30 @@ where
                         _ => None,
                     };
                     if let Some(market_data) = data {
-                        handler(market_data).await
+                        task_broadcast_sender.send(market_data).unwrap();
                     }
                 }
             }
         });
-        let market_data_stream = MarketDataStream { sender, task };
+        let market_data_stream = MarketDataStream {
+            sender,
+            task,
+            broadcast_sender,
+        };
         Ok(market_data_stream)
     }
 }
 
-impl<I, H> Default for MarketDataStreamBuilder<I, H>
+impl<I> Default for MarketDataStreamBuilder<I>
 where
     I: Interceptor + Send + 'static,
-    H: Future<Output = ()> + Send + 'static,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<I, H> From<&TinkoffInvest<I>> for MarketDataStreamBuilder<I, H>
+impl<I> From<&TinkoffInvest<I>> for MarketDataStreamBuilder<I>
 where
     I: Interceptor + Send + Clone + 'static,
 {
@@ -103,17 +98,21 @@ where
             endpoint: Some(v.endpoint.clone()),
             channel: Some(v.channel.clone()),
             interceptor: Some(v.interceptor.clone()),
-            handler: None,
         }
     }
 }
 
 pub struct MarketDataStream {
     sender: UnboundedSender<tit::MarketDataRequest>,
+    broadcast_sender: broadcast::Sender<enums::MarketDataStreamData>,
     pub task: JoinHandle<()>,
 }
 
 impl MarketDataStream {
+    pub fn subscribe(&self) -> broadcast::Receiver<enums::MarketDataStreamData> {
+        self.broadcast_sender.subscribe()
+    }
+
     pub async fn subscribe_candlesticks<T>(
         &mut self,
         instruments: &[T],

@@ -163,17 +163,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let tinkoff = TinkoffInvest::new(token.into()).await?;
 
-    let mut market_data_stream_builder = MarketDataStreamBuilder::from(&tinkoff);
-    market_data_stream_builder.handler(market_data_handler);
+    let market_data_stream_builder = MarketDataStreamBuilder::from(&tinkoff);
     let mut market_data_stream = market_data_stream_builder.build().await?;
 
     market_data_stream
         .subscribe_candlesticks(&[&Figi::from("BBG004730N88")], &CandlestickInterval::Min)
         .await?;
 
-    market_data_stream
-        .subscribe_orderbook(&[&Figi::from("BBG004730N88")], 10)
-        .await?;
+    let mut broadcast_receiver = market_data_stream.subscribe();
+    
+    tokio::spawn(async move {
+        while let MarketDataStreamData::Candlestick(candlestick) = broadcast_receiver.recv().await.unwrap() {
+            println!("{:?}", candlestick);
+        }
+    });
 
     market_data_stream.task.await?;
 

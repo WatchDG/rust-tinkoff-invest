@@ -1,10 +1,27 @@
 use chrono;
+use std::cmp::Ordering;
 use tinkoff_invest_types as tit;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DateTime {
     pub seconds: i64,
     pub nanoseconds: u32,
+}
+
+impl PartialOrd for DateTime {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.seconds > other.seconds {
+            Some(Ordering::Greater)
+        } else if self.seconds < other.seconds {
+            Some(Ordering::Less)
+        } else if self.nanoseconds > other.nanoseconds {
+            Some(Ordering::Greater)
+        } else if self.nanoseconds < other.nanoseconds {
+            Some(Ordering::Less)
+        } else {
+            Some(Ordering::Equal)
+        }
+    }
 }
 
 impl From<chrono::NaiveDateTime> for DateTime {
@@ -45,5 +62,11 @@ impl From<DateTime> for tit::prost_types::Timestamp {
             seconds: value.seconds,
             nanos: value.nanoseconds as i32,
         }
+    }
+}
+
+impl DateTime {
+    pub fn now() -> Self {
+        chrono::Utc::now().naive_utc().into()
     }
 }

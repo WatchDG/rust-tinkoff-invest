@@ -25,6 +25,8 @@ pub enum TinkoffInvestError {
     CandlestickPriceLowNotSet,
     CandlestickPriceCloseNotSet,
     CandlestickDatetimeNotSet,
+    FigiNotFound,
+    FigiNotSet,
 }
 
 impl Display for TinkoffInvestError {
