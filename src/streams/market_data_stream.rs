@@ -18,6 +18,7 @@ where
     endpoint: Option<Endpoint>,
     channel: Option<Channel>,
     interceptor: Option<I>,
+    messages_capacity: usize
 }
 
 impl<I> MarketDataStreamBuilder<I>
@@ -29,7 +30,13 @@ where
             endpoint: None,
             channel: None,
             interceptor: None,
+            messages_capacity: 1
         }
+    }
+
+    pub fn set_messages_capacity(&mut self, capacity: usize) -> &mut MarketDataStreamBuilder<I> {
+        self.messages_capacity = capacity;
+        self
     }
 
     pub async fn build(self) -> Result<MarketDataStream, Box<dyn Error>> {
@@ -46,7 +53,7 @@ where
         let mut client = MarketDataStreamServiceClient::with_interceptor(channel, interceptor);
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<tit::MarketDataRequest>();
         let receiver_stream = UnboundedReceiverStream::new(receiver);
-        let (broadcast_sender, _broadcast_receiver) = broadcast::channel(1);
+        let (broadcast_sender, _broadcast_receiver) = broadcast::channel(self.messages_capacity);
         let task_broadcast_sender = broadcast_sender.clone();
         let task = tokio::spawn(async move {
             let mut streaming = client
@@ -98,6 +105,7 @@ where
             endpoint: Some(v.endpoint.clone()),
             channel: Some(v.channel.clone()),
             interceptor: Some(v.interceptor.clone()),
+            messages_capacity: 1
         }
     }
 }

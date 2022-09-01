@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use crate::types;
 
 #[derive(Debug)]
-pub struct CachedOrderbook {
+pub struct CachedOrderbooks {
     inner: HashMap<types::Figi, types::OrderBook>,
 }
 
-impl CachedOrderbook {
+impl CachedOrderbooks {
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -28,7 +28,7 @@ impl CachedOrderbook {
     }
 }
 
-impl Default for CachedOrderbook {
+impl Default for CachedOrderbooks {
     fn default() -> Self {
         Self::new()
     }

@@ -239,7 +239,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use std::sync::Arc;
-use tinkoff_invest::cached::CachedOrderbook;
+use tinkoff_invest::cached::CachedOrderbooks;
 use tinkoff_invest::enums::MarketDataStreamData;
 use tinkoff_invest::streams::MarketDataStreamBuilder;
 use tinkoff_invest::types::Figi;
@@ -262,15 +262,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     let mut broadcast_receiver = market_data_stream.subscribe();
 
-    let cached_orderbook = Arc::new(Mutex::new(CachedOrderbook::new()));
+    let cached_orderbooks = Arc::new(Mutex::new(CachedOrderbooks::new()));
 
-    let thread_cached_orderbook = cached_orderbook.clone();
+    let thread_cached_orderbooks = cached_orderbooks.clone();
     tokio::spawn(async move {
         loop {
             match broadcast_receiver.recv().await {
                 Ok(MarketDataStreamData::Orderbook(orderbook)) => {
                     println!("orderbook: {:?}", orderbook);
-                    thread_cached_orderbook.lock().await.add(orderbook);
+                    thread_cached_orderbooks.lock().await.add(orderbook);
                 }
                 Err(error) => {
                     println!("error: {}", error);
