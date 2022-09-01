@@ -234,3 +234,54 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+## Cached Orderbook
+
+```rust
+use std::sync::Arc;
+use tinkoff_invest::cached::CachedOrderbook;
+use tinkoff_invest::enums::MarketDataStreamData;
+use tinkoff_invest::streams::MarketDataStreamBuilder;
+use tinkoff_invest::types::Figi;
+use tinkoff_invest::TinkoffInvest;
+use tokio::sync::Mutex;
+
+#[tokio::main()]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = "...";
+
+    let tinkoff = TinkoffInvest::new(token.into()).await?;
+
+    let market_data_stream_builder = MarketDataStreamBuilder::from(&tinkoff);
+    let mut market_data_stream = market_data_stream_builder.build().await?;
+    market_data_stream
+        .subscribe_orderbook(
+            &[&Figi::from("BBG004730N88"), &Figi::from("BBG000BM2FL9")],
+            10,
+        )
+        .await?;
+    let mut broadcast_receiver = market_data_stream.subscribe();
+
+    let cached_orderbook = Arc::new(Mutex::new(CachedOrderbook::new()));
+
+    let thread_cached_orderbook = cached_orderbook.clone();
+    tokio::spawn(async move {
+        loop {
+            match broadcast_receiver.recv().await {
+                Ok(MarketDataStreamData::Orderbook(orderbook)) => {
+                    println!("orderbook: {:?}", orderbook);
+                    thread_cached_orderbook.lock().await.add(orderbook);
+                }
+                Err(error) => {
+                    println!("error: {}", error);
+                }
+                _ => {}
+            }
+        }
+    });
+
+    market_data_stream.task.await?;
+
+    Ok(())
+}
+```

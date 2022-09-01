@@ -2,6 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{types, TinkoffInvestError};
 
+#[derive(Debug)]
 pub struct CachedCandlesticksBucket {
     inner: VecDeque<types::Candlestick>,
     last_datetime: Option<types::DateTime>,
@@ -18,6 +19,7 @@ impl CachedCandlesticksBucket {
         }
     }
 
+    #[inline]
     pub fn set_limit(&mut self, limit: usize) -> &mut Self {
         self.limit = limit;
         self
@@ -52,12 +54,18 @@ impl CachedCandlesticksBucket {
         self.inner.is_empty()
     }
 
+    #[inline]
     pub fn get_last_n(&mut self, n: usize) -> Option<&[types::Candlestick]> {
         let len = self.len();
         if len < n {
             return None;
         }
         Some(&self.inner.make_contiguous()[(len - n)..len])
+    }
+
+    #[inline]
+    pub fn get_last_datetime(&self) -> Option<&types::DateTime> {
+        self.last_datetime.as_ref()
     }
 }
 
@@ -67,6 +75,7 @@ impl Default for CachedCandlesticksBucket {
     }
 }
 
+#[derive(Debug)]
 pub struct CachedCandlesticks {
     inner: HashMap<types::Figi, CachedCandlesticksBucket>,
 }
