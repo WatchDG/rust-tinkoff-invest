@@ -17,8 +17,12 @@ pub struct OrderBook {
     pub last_trade_price: Option<types::MoneyValue>,
     /// Цена закрытия.
     pub close_trade_price: Option<types::MoneyValue>,
+    /// Верхний лимит цены.
     pub limit_price_up: Option<types::MoneyValue>,
+    /// Нижний лимит цены.
     pub limit_price_down: Option<types::MoneyValue>,
+    /// Дата и время формирования стакана на бирже.
+    pub datetime: Option<types::DateTime>,
 }
 
 impl From<tit::GetOrderBookResponse> for OrderBook {
@@ -34,6 +38,7 @@ impl From<tit::GetOrderBookResponse> for OrderBook {
             close_trade_price: value.close_price.map(|x| x.into()),
             limit_price_up: value.limit_up.map(|x| x.into()),
             limit_price_down: value.limit_down.map(|x| x.into()),
+            datetime: value.orderbook_ts.map(|x| x.into()),
         }
     }
 }
@@ -51,6 +56,7 @@ impl From<tit::OrderBook> for OrderBook {
             close_trade_price: None,
             limit_price_up: value.limit_up.map(|x| x.into()),
             limit_price_down: value.limit_down.map(|x| x.into()),
+            datetime: value.time.map(|x| x.into()),
         }
     }
 }

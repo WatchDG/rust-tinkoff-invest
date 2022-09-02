@@ -18,7 +18,7 @@ where
     endpoint: Option<Endpoint>,
     channel: Option<Channel>,
     interceptor: Option<I>,
-    messages_capacity: usize
+    messages_capacity: usize,
 }
 
 impl<I> MarketDataStreamBuilder<I>
@@ -30,7 +30,7 @@ where
             endpoint: None,
             channel: None,
             interceptor: None,
-            messages_capacity: 1
+            messages_capacity: 1,
         }
     }
 
@@ -105,7 +105,7 @@ where
             endpoint: Some(v.endpoint.clone()),
             channel: Some(v.channel.clone()),
             interceptor: Some(v.interceptor.clone()),
-            messages_capacity: 1
+            messages_capacity: 1,
         }
     }
 }
