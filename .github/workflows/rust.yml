@@ -21,5 +21,6 @@ jobs:
         git submodule update --init --recursive
         bazel build :protoc :protobuf
         cp bazel-bin/protoc /usr/local/bin
+        cp src/google/protobuf/timestamp.proto /usr/local/bin/include
     - name: Build
       run: cargo build --verbose
