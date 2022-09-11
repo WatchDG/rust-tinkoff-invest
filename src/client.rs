@@ -17,7 +17,6 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
-use crate::types::DateTime;
 use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 
 pub struct TinkoffInvestBuilder<I>
@@ -251,7 +250,7 @@ where
         let mut request = InstrumentsRequest::default();
         request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let shares = client.shares(request).await?.into_inner().instruments;
-        Ok(shares.iter().map(|v| v.clone().into()).collect())
+        Ok(shares.into_iter().map(|x| x.into()).collect())
     }
 
     pub async fn share<T>(
@@ -285,7 +284,7 @@ where
         let mut request = InstrumentsRequest::default();
         request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let currencies = client.currencies(request).await?.into_inner().instruments;
-        Ok(currencies.iter().map(|v| v.clone().into()).collect())
+        Ok(currencies.into_iter().map(|v| v.into()).collect())
     }
 
     pub async fn currency<T>(
@@ -319,7 +318,7 @@ where
         let mut request = InstrumentsRequest::default();
         request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let futures = client.futures(request).await?.into_inner().instruments;
-        Ok(futures.iter().map(|v| v.clone().into()).collect())
+        Ok(futures.into_iter().map(|v| v.into()).collect())
     }
 
     pub async fn future<T>(
@@ -390,9 +389,9 @@ where
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
         Ok(candlesticks
-            .iter()
+            .into_iter()
             .map(|x| {
-                let mut candlestick: types::Candlestick = x.clone().into();
+                let mut candlestick = types::Candlestick::from(x);
                 candlestick.figi = Some(figi.clone());
                 candlestick.interval = Some(interval.clone());
                 candlestick
@@ -451,7 +450,7 @@ where
             .await?
             .into_inner()
             .operations;
-        Ok(operations.iter().map(|x| x.clone().into()).collect())
+        Ok(operations.into_iter().map(|x| x.into()).collect())
     }
 
     pub async fn operations<T>(
@@ -585,7 +584,7 @@ where
         &mut self,
         account: T,
         order: K,
-    ) -> Result<Option<DateTime>, Box<dyn Error>>
+    ) -> Result<Option<types::DateTime>, Box<dyn Error>>
     where
         T: traits::ToAccountId,
         K: traits::ToOrderId,
@@ -606,7 +605,10 @@ where
             .map(|x| x.into()))
     }
 
-    pub async fn cancel_order<T>(&mut self, order: T) -> Result<Option<DateTime>, Box<dyn Error>>
+    pub async fn cancel_order<T>(
+        &mut self,
+        order: T,
+    ) -> Result<Option<types::DateTime>, Box<dyn Error>>
     where
         T: traits::ToOrderId,
     {
