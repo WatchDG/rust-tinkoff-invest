@@ -47,6 +47,9 @@ pub enum OperationType {
     TaxRepoRefundProgressive,
     DivExt,
     TaxCorrectionCoupon,
+    CashFee,
+    OutFee,
+    OutStampDuty,
 }
 
 impl From<tit::OperationType> for OperationType {
@@ -97,6 +100,9 @@ impl From<tit::OperationType> for OperationType {
             tit::OperationType::TaxRepoRefundProgressive => OperationType::TaxRepoRefundProgressive,
             tit::OperationType::DivExt => OperationType::DivExt,
             tit::OperationType::TaxCorrectionCoupon => OperationType::TaxCorrectionCoupon,
+            tit::OperationType::CashFee => OperationType::CashFee,
+            tit::OperationType::OutFee => OperationType::OutFee,
+            tit::OperationType::OutStampDuty => OperationType::OutStampDuty,
         }
     }
 }

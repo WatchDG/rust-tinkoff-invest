@@ -351,12 +351,15 @@ where
     where
         T: traits::ToFigi,
     {
-        let figi = instrument.to_figi();
+        let figi: String = instrument.to_figi().into();
         let client = self
             .market_data_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
-        let request = GetTradingStatusRequest { figi: figi.into() };
+        let request = GetTradingStatusRequest {
+            figi: figi.clone(),
+            instrument_id: figi,
+        };
         Ok(client
             .get_trading_status(request)
             .await?
@@ -407,9 +410,11 @@ where
     where
         T: traits::ToFigi,
     {
+        let figi: String = instrument.to_figi().into();
         let request = GetOrderBookRequest {
-            figi: instrument.to_figi().into(),
+            figi: figi.clone(),
             depth: depth as i32,
+            instrument_id: figi,
         };
         let client = self
             .market_data_service_client
