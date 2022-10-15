@@ -14,14 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-#    - name: Build protobuf library
-#      run: |
-#        git clone https://github.com/protocolbuffers/protobuf.git
-#        cd protobuf
-#        git submodule update --init --recursive
-#        bazel build :protoc :protobuf
-#        cp bazel-bin/protoc /usr/local/bin
-#        cp src/google/protobuf/timestamp.proto /usr/local/include
     - name: Install protoc
       run: sudo apt-get install -y protobuf-compiler
     - name: Build
