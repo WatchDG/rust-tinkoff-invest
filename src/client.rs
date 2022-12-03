@@ -5,10 +5,10 @@ use tinkoff_invest_types::{
     self, instruments_service_client::InstrumentsServiceClient,
     market_data_service_client::MarketDataServiceClient,
     operations_service_client::OperationsServiceClient, orders_service_client::OrdersServiceClient,
-    users_service_client::UsersServiceClient, CancelOrderRequest, GetAccountsRequest,
-    GetCandlesRequest, GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType,
-    InstrumentRequest, InstrumentsRequest, OperationsRequest, PortfolioRequest, PositionsRequest,
-    PostOrderRequest, portfolio_request::CurrencyRequest
+    portfolio_request::CurrencyRequest, users_service_client::UsersServiceClient,
+    CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
+    GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
+    OperationsRequest, PortfolioRequest, PositionsRequest, PostOrderRequest,
 };
 use tonic::{
     codec::CompressionEncoding,
