@@ -2,6 +2,7 @@ use tinkoff_invest_types as tit;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OperationType {
+    OperationType(String),
     Unspecified,
     Input,
     BondTax,
@@ -50,6 +51,20 @@ pub enum OperationType {
     CashFee,
     OutFee,
     OutStampDuty,
+    OutputSwift,
+    InputSwift,
+    OutputAcquiring,
+    InputAcquiring,
+    OutputPenalty,
+    AdviceFee,
+    TransIisBs,
+    TransBsBs,
+    OutMulti,
+    InpMulti,
+    OverPlacement,
+    OverCom,
+    OverIncome,
+    OptionExpiration,
 }
 
 impl From<tit::OperationType> for OperationType {
@@ -103,6 +118,20 @@ impl From<tit::OperationType> for OperationType {
             tit::OperationType::CashFee => OperationType::CashFee,
             tit::OperationType::OutFee => OperationType::OutFee,
             tit::OperationType::OutStampDuty => OperationType::OutStampDuty,
+            tit::OperationType::OutputSwift => OperationType::OutputSwift,
+            tit::OperationType::InputSwift => OperationType::InputSwift,
+            tit::OperationType::OutputAcquiring => OperationType::OutputAcquiring,
+            tit::OperationType::InputAcquiring => OperationType::InputAcquiring,
+            tit::OperationType::OutputPenalty => OperationType::OutputPenalty,
+            tit::OperationType::AdviceFee => OperationType::AdviceFee,
+            tit::OperationType::TransIisBs => OperationType::TransIisBs,
+            tit::OperationType::TransBsBs => OperationType::TransBsBs,
+            tit::OperationType::OutMulti => OperationType::OutMulti,
+            tit::OperationType::InpMulti => OperationType::InpMulti,
+            tit::OperationType::OverPlacement => OperationType::OverPlacement,
+            tit::OperationType::OverCom => OperationType::OverCom,
+            tit::OperationType::OverIncome => OperationType::OverIncome,
+            tit::OperationType::OptionExpiration => OperationType::OptionExpiration,
         }
     }
 }

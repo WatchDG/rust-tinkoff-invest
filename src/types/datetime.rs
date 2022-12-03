@@ -35,14 +35,14 @@ impl From<chrono::NaiveDateTime> for DateTime {
 
 impl From<DateTime> for chrono::NaiveDateTime {
     fn from(value: DateTime) -> Self {
-        chrono::NaiveDateTime::from_timestamp(value.seconds, value.nanoseconds)
+        chrono::NaiveDateTime::from_timestamp_opt(value.seconds, value.nanoseconds).unwrap()
     }
 }
 
 impl From<chrono::NaiveDate> for DateTime {
     fn from(value: chrono::NaiveDate) -> Self {
         let naive_date_time =
-            chrono::NaiveDateTime::new(value, chrono::NaiveTime::from_hms(0, 0, 0));
+            chrono::NaiveDateTime::new(value, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap());
         naive_date_time.into()
     }
 }

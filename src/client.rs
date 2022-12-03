@@ -8,7 +8,7 @@ use tinkoff_invest_types::{
     users_service_client::UsersServiceClient, CancelOrderRequest, GetAccountsRequest,
     GetCandlesRequest, GetOrderBookRequest, GetTradingStatusRequest, InstrumentIdType,
     InstrumentRequest, InstrumentsRequest, OperationsRequest, PortfolioRequest, PositionsRequest,
-    PostOrderRequest,
+    PostOrderRequest, portfolio_request::CurrencyRequest
 };
 use tonic::{
     codec::CompressionEncoding,
@@ -484,9 +484,11 @@ where
     where
         T: traits::ToAccountId,
     {
-        let request = PortfolioRequest {
+        let mut request = PortfolioRequest {
             account_id: account.to_account_id().into(),
+            ..Default::default()
         };
+        request.set_currency(CurrencyRequest::Rub);
         let client = self
             .operations_service_client
             .as_mut()
