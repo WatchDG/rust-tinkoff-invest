@@ -1,6 +1,6 @@
 [package]
 name = "tinkoff-invest"
-version = "2.19.0"
+version = "2.20.0"
 authors = ["WatchDG <baranov@w3m.co>"]
 license = "MIT OR Apache-2.0"
 description = "tinkoff invest library"
@@ -16,8 +16,8 @@ exclude = [
 ]
 
 [dependencies]
-tonic = { version = "0.8", features = ["tls", "tls-roots", "gzip"]}
-tinkoff-invest-types = { version = "2.9" }
+tonic = { version = "0.8", features = ["tls", "tls-roots", "gzip"] }
+tinkoff-invest-types = { version = "2.10" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 tokio-stream = { version = "0.1" }
 uuid = { version = "1", features = ["v4"] }
