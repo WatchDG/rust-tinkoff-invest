@@ -4,10 +4,18 @@ use tinkoff_invest_types as tit;
 pub enum CandlestickInterval {
     Unspecified,
     Min,
+    Min2,
+    Min3,
     Min5,
+    Min10,
     Min15,
+    Min30,
     Hour,
+    Hour2,
+    Hour4,
     Day,
+    Week,
+    Month,
 }
 
 impl From<tit::CandleInterval> for CandlestickInterval {
@@ -15,10 +23,18 @@ impl From<tit::CandleInterval> for CandlestickInterval {
         match value {
             tit::CandleInterval::Unspecified => CandlestickInterval::Unspecified,
             tit::CandleInterval::CandleInterval1Min => CandlestickInterval::Min,
+            tit::CandleInterval::CandleInterval2Min => CandlestickInterval::Min2,
+            tit::CandleInterval::CandleInterval3Min => CandlestickInterval::Min3,
             tit::CandleInterval::CandleInterval5Min => CandlestickInterval::Min5,
+            tit::CandleInterval::CandleInterval10Min => CandlestickInterval::Min10,
             tit::CandleInterval::CandleInterval15Min => CandlestickInterval::Min15,
+            tit::CandleInterval::CandleInterval30Min => CandlestickInterval::Min30,
             tit::CandleInterval::Hour => CandlestickInterval::Hour,
+            tit::CandleInterval::CandleInterval2Hour => CandlestickInterval::Hour2,
+            tit::CandleInterval::CandleInterval4Hour => CandlestickInterval::Hour4,
             tit::CandleInterval::Day => CandlestickInterval::Day,
+            tit::CandleInterval::Week => CandlestickInterval::Week,
+            tit::CandleInterval::Month => CandlestickInterval::Month
         }
     }
 }
@@ -28,10 +44,18 @@ impl From<CandlestickInterval> for tit::CandleInterval {
         match value {
             CandlestickInterval::Unspecified => tit::CandleInterval::Unspecified,
             CandlestickInterval::Min => tit::CandleInterval::CandleInterval1Min,
+            CandlestickInterval::Min2 => tit::CandleInterval::CandleInterval2Min,
+            CandlestickInterval::Min3 => tit::CandleInterval::CandleInterval3Min,
             CandlestickInterval::Min5 => tit::CandleInterval::CandleInterval5Min,
+            CandlestickInterval::Min10 => tit::CandleInterval::CandleInterval10Min,
             CandlestickInterval::Min15 => tit::CandleInterval::CandleInterval15Min,
+            CandlestickInterval::Min30 => tit::CandleInterval::CandleInterval30Min,
             CandlestickInterval::Hour => tit::CandleInterval::Hour,
+            CandlestickInterval::Hour2 => tit::CandleInterval::CandleInterval2Hour,
+            CandlestickInterval::Hour4 => tit::CandleInterval::CandleInterval4Hour,
             CandlestickInterval::Day => tit::CandleInterval::Day,
+            CandlestickInterval::Week => tit::CandleInterval::Week,
+            CandlestickInterval::Month => tit::CandleInterval::Month
         }
     }
 }
