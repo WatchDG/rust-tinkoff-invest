@@ -11,7 +11,7 @@ impl From<String> for InstrumentType {
             "currency" => InstrumentType::Currency,
             "share" => InstrumentType::Share,
             "future" => InstrumentType::Future,
-            _ => panic!("{:?}", value),
+            _ => panic!("{value:?}"),
         }
     }
 }

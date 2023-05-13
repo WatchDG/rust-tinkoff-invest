@@ -34,7 +34,7 @@ impl From<tit::CandleInterval> for CandlestickInterval {
             tit::CandleInterval::CandleInterval4Hour => CandlestickInterval::Hour4,
             tit::CandleInterval::Day => CandlestickInterval::Day,
             tit::CandleInterval::Week => CandlestickInterval::Week,
-            tit::CandleInterval::Month => CandlestickInterval::Month
+            tit::CandleInterval::Month => CandlestickInterval::Month,
         }
     }
 }
@@ -55,7 +55,7 @@ impl From<CandlestickInterval> for tit::CandleInterval {
             CandlestickInterval::Hour4 => tit::CandleInterval::CandleInterval4Hour,
             CandlestickInterval::Day => tit::CandleInterval::Day,
             CandlestickInterval::Week => tit::CandleInterval::Week,
-            CandlestickInterval::Month => tit::CandleInterval::Month
+            CandlestickInterval::Month => tit::CandleInterval::Month,
         }
     }
 }
@@ -66,7 +66,7 @@ impl From<&CandlestickInterval> for tit::SubscriptionInterval {
             CandlestickInterval::Unspecified => tit::SubscriptionInterval::Unspecified,
             CandlestickInterval::Min => tit::SubscriptionInterval::OneMinute,
             CandlestickInterval::Min5 => tit::SubscriptionInterval::FiveMinutes,
-            _ => panic!("subscription does not support interval: {:?}", v),
+            _ => panic!("subscription does not support interval: {v:?}"),
         }
     }
 }

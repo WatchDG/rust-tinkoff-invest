@@ -1,6 +1,6 @@
 [package]
 name = "tinkoff-invest"
-version = "2.21.0"
+version = "2.22.0"
 authors = ["WatchDG <baranov@w3m.co>"]
 license = "MIT OR Apache-2.0"
 description = "tinkoff invest library"
@@ -8,7 +8,7 @@ homepage = "https://github.com/WatchDG/rust-tinkoff-invest"
 documentation = "https://docs.rs/tinkoff-invest"
 repository = "https://github.com/WatchDG/rust-tinkoff-invest"
 readme = "README.md"
-edition = "2018"
+edition = "2021"
 exclude = [
     ".github/**/*",
     "src/main.rs",
@@ -16,8 +16,8 @@ exclude = [
 ]
 
 [dependencies]
-tonic = { version = "0.8", features = ["tls", "tls-roots", "gzip"] }
-tinkoff-invest-types = { version = "2.12" }
+tonic = { version = "0.9", features = ["tls", "tls-roots", "gzip"] }
+tinkoff-invest-types = { version = "2.13" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 tokio-stream = { version = "0.1" }
 uuid = { version = "1", features = ["v4"] }

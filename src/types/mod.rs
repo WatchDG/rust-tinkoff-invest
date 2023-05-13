@@ -14,9 +14,10 @@ mod portfolio;
 mod positions;
 mod ticker;
 mod trade;
+mod uid;
 
 pub use account::{Account, AccountId};
-pub use candlestick::{Candlestick, StrictCandlestick};
+pub use candlestick::Candlestick;
 pub use class_code_ticker::ClassCodeTicker;
 pub use datetime::DateTime;
 pub use figi::Figi;
@@ -31,3 +32,4 @@ pub use portfolio::{Portfolio, PortfolioPosition};
 pub use positions::Positions;
 pub use ticker::Ticker;
 pub use trade::Trade;
+pub use uid::Uid;

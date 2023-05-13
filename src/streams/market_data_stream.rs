@@ -127,7 +127,7 @@ impl MarketDataStream {
         interval: &enums::CandlestickInterval,
     ) -> Result<(), Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
         let mut default_instrument = tit::CandleInstrument::default();
         default_instrument.set_interval(interval.into());
@@ -136,7 +136,7 @@ impl MarketDataStream {
             .iter()
             .map(|x| {
                 let mut instrument = default_instrument.clone();
-                instrument.figi = x.to_figi().into();
+                instrument.instrument_id = x.to_uid().into();
                 instrument
             })
             .collect();
@@ -163,7 +163,7 @@ impl MarketDataStream {
         interval: &enums::CandlestickInterval,
     ) -> Result<(), Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
         let mut default_instrument = tit::CandleInstrument::default();
         default_instrument.set_interval(interval.into());
@@ -172,7 +172,7 @@ impl MarketDataStream {
             .iter()
             .map(|x| {
                 let mut instrument = default_instrument.clone();
-                instrument.figi = x.to_figi().into();
+                instrument.instrument_id = x.to_uid().into();
                 instrument
             })
             .collect();
@@ -199,7 +199,7 @@ impl MarketDataStream {
         depth: u32,
     ) -> Result<(), Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
         let default_instrument = tit::OrderBookInstrument {
             depth: depth as i32,
@@ -210,7 +210,7 @@ impl MarketDataStream {
             .iter()
             .map(|x| {
                 let mut instrument = default_instrument.clone();
-                instrument.figi = x.to_figi().into();
+                instrument.instrument_id = x.to_uid().into();
                 instrument
             })
             .collect();
@@ -237,7 +237,7 @@ impl MarketDataStream {
         depth: u32,
     ) -> Result<(), Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
         let default_instrument = tit::OrderBookInstrument {
             depth: depth as i32,
@@ -248,7 +248,7 @@ impl MarketDataStream {
             .iter()
             .map(|x| {
                 let mut instrument = default_instrument.clone();
-                instrument.figi = x.to_figi().into();
+                instrument.instrument_id = x.to_uid().into();
                 instrument
             })
             .collect();

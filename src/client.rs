@@ -349,16 +349,15 @@ where
         instrument: T,
     ) -> Result<enums::TradingStatus, Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
-        let figi: String = instrument.to_figi().into();
         let client = self
             .market_data_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let request = GetTradingStatusRequest {
-            figi: figi.clone(),
-            instrument_id: figi,
+            instrument_id: instrument.to_uid().into(),
+            ..Default::default()
         };
         Ok(client
             .get_trading_status(request)
@@ -376,11 +375,11 @@ where
         to: types::DateTime,
     ) -> Result<Vec<types::Candlestick>, Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
-        let figi = instrument.to_figi();
+        let uid = instrument.to_uid();
         let mut request = GetCandlesRequest {
-            figi: figi.clone().into(),
+            instrument_id: uid.clone().into(),
             from: Some(from.into()),
             to: Some(to.into()),
             ..Default::default()
@@ -395,7 +394,7 @@ where
             .into_iter()
             .map(|x| {
                 let mut candlestick = types::Candlestick::from(x);
-                candlestick.figi = Some(figi.clone());
+                candlestick.uid = Some(uid.clone());
                 candlestick.interval = Some(interval.clone());
                 candlestick
             })
@@ -408,13 +407,12 @@ where
         depth: usize,
     ) -> Result<types::OrderBook, Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
-        let figi: String = instrument.to_figi().into();
         let request = GetOrderBookRequest {
-            figi: figi.clone(),
             depth: depth as i32,
-            instrument_id: figi,
+            instrument_id: instrument.to_uid().into(),
+            ..Default::default()
         };
         let client = self
             .market_data_service_client
@@ -546,13 +544,13 @@ where
     ) -> Result<types::Order, Box<dyn Error>>
     where
         T: traits::ToAccountId,
-        K: traits::ToFigi,
+        K: traits::ToUid,
     {
         let order_id = order_id.unwrap_or_else(|| Uuid::new_v4().to_string());
         let mut request = PostOrderRequest {
             order_id,
             account_id: account.to_account_id().into(),
-            figi: instrument.to_figi().into(),
+            instrument_id: instrument.to_uid().into(),
             quantity: quantity as i64,
             price: Some(price.into()),
             ..Default::default()
@@ -575,7 +573,7 @@ where
         order_id: Option<String>,
     ) -> Result<types::Order, Box<dyn Error>>
     where
-        T: traits::ToFigi,
+        T: traits::ToUid,
     {
         let account = self
             .account

@@ -7,14 +7,15 @@ pub struct PortfolioPosition {
     /// FIGI инструмента.
     pub figi: types::Figi,
     /// Количество инструмента в лотах.
-    pub lots: Option<types::MoneyValue>,
+    // Количество инструмента в портфеле в штуках.
+    pub quantity: Option<types::MoneyValue>,
 }
 
 impl From<tit::PortfolioPosition> for PortfolioPosition {
     fn from(value: tit::PortfolioPosition) -> Self {
         Self {
             figi: value.figi.into(),
-            lots: value.quantity_lots.map(|x| x.into()),
+            quantity: value.quantity.map(|x| x.into()),
         }
     }
 }
