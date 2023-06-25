@@ -22,3 +22,9 @@ impl traits::ToUid for Uid {
         self.clone()
     }
 }
+
+impl traits::ToUidRef for &Uid {
+    fn to_uid_ref(&self) -> &Uid {
+        self
+    }
+}

@@ -33,3 +33,9 @@ impl traits::ToFigi for &Figi {
         Figi::new(self.0.clone())
     }
 }
+
+impl traits::ToFigiRef for &Figi {
+    fn to_figi_ref(&self) -> &Figi {
+        self
+    }
+}

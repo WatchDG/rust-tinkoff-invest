@@ -39,3 +39,9 @@ impl traits::ToTicker for &Ticker {
         Ticker::new(self.0.clone())
     }
 }
+
+impl traits::ToTickerRef for &Ticker {
+    fn to_ticker_ref(&self) -> &Ticker {
+        self
+    }
+}

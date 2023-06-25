@@ -1,103 +1,125 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use crate::{enums, traits, types};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+pub type CachedMarketInstrument = Arc<RwLock<types::MarketInstrument>>;
+
+pub struct CachedMarketInstrumentsWrapper {
+    inner: Arc<RwLock<CachedMarketInstruments>>,
+}
+
+#[derive(Debug)]
 pub struct CachedMarketInstruments {
-    hash_map_by_figi: HashMap<types::Figi, types::MarketInstrument>,
-    hash_map_link_ticker_figi: HashMap<types::Ticker, HashSet<types::Figi>>,
-    hash_map_link_class_code_ticker_figi: HashMap<(enums::ClassCode, types::Ticker), types::Figi>,
+    hash_map_by_uid: HashMap<types::Uid, CachedMarketInstrument>,
+    hash_map_by_figi: HashMap<types::Figi, Arc<Vec<CachedMarketInstrument>>>,
+    hash_map_by_ticker: HashMap<types::Ticker, Arc<Vec<CachedMarketInstrument>>>,
+    hash_map_by_class_code_ticker:
+        HashMap<(enums::ClassCode, types::Ticker), Arc<Vec<CachedMarketInstrument>>>,
 }
 
 impl CachedMarketInstruments {
     #[inline]
-    pub fn new() -> Self {
-        Self {
-            hash_map_by_figi: HashMap::new(),
-            hash_map_link_ticker_figi: HashMap::new(),
-            hash_map_link_class_code_ticker_figi: HashMap::new(),
-        }
-    }
+    pub fn new(market_instruments: Vec<types::MarketInstrument>) -> Self {
+        let mut hash_map_by_uid = HashMap::new();
+        let mut hash_map_by_figi = HashMap::<types::Figi, Vec<CachedMarketInstrument>>::new();
+        let mut hash_map_by_ticker = HashMap::<types::Ticker, Vec<CachedMarketInstrument>>::new();
+        let mut hash_map_by_class_code_ticker =
+            HashMap::<types::ClassCodeTicker, Vec<CachedMarketInstrument>>::new();
 
-    #[inline]
-    pub fn insert(&mut self, market_instrument: types::MarketInstrument) -> &Self {
-        let figi = market_instrument.figi.clone();
-        let class_code = market_instrument.class_code.clone();
-        let ticker = market_instrument.ticker.clone();
-
-        // hash_map_by_figi
-        self.hash_map_by_figi
-            .insert(figi.clone(), market_instrument);
-
-        // hash_map_link_ticker_figi
-        if let Some(hash_set) = self.hash_map_link_ticker_figi.get_mut(&ticker) {
-            hash_set.insert(figi.clone());
-        } else {
-            let mut hash_set = HashSet::new();
-            hash_set.insert(figi.clone());
-            self.hash_map_link_ticker_figi
-                .insert(ticker.clone(), hash_set);
-        }
-
-        // hash_map_link_class_code_ticker_figi
-        self.hash_map_link_class_code_ticker_figi
-            .insert((class_code, ticker), figi);
-
-        self
-    }
-
-    #[inline]
-    pub fn append(&mut self, market_instruments: Vec<types::MarketInstrument>) -> &Self {
         for market_instrument in market_instruments {
-            self.insert(market_instrument);
+            let uid = market_instrument.uid.clone();
+            let figi = market_instrument.figi.clone();
+            let ticker = market_instrument.ticker.clone();
+            let class_code_ticker = (
+                market_instrument.class_code.clone(),
+                market_instrument.ticker.clone(),
+            );
+
+            let cached_market_instrument = Arc::new(RwLock::new(market_instrument));
+
+            if let Some(vec) = hash_map_by_figi.get_mut(&figi) {
+                vec.push(cached_market_instrument.clone());
+            } else {
+                let vec = vec![cached_market_instrument.clone()];
+                hash_map_by_figi.insert(figi, vec);
+            }
+
+            if let Some(vec) = hash_map_by_ticker.get_mut(&ticker) {
+                vec.push(cached_market_instrument.clone());
+            } else {
+                let vec = vec![cached_market_instrument.clone()];
+                hash_map_by_ticker.insert(ticker, vec);
+            }
+
+            if let Some(vec) = hash_map_by_class_code_ticker.get_mut(&class_code_ticker) {
+                vec.push(cached_market_instrument.clone());
+            } else {
+                let vec = vec![cached_market_instrument.clone()];
+                hash_map_by_class_code_ticker.insert(class_code_ticker, vec);
+            }
+
+            hash_map_by_uid.insert(uid, cached_market_instrument);
         }
-        self
+
+        let mut _hash_map_by_figi = HashMap::new();
+        for (k, v) in hash_map_by_figi {
+            _hash_map_by_figi.insert(k, Arc::new(v));
+        }
+
+        let mut _hash_map_by_ticker = HashMap::new();
+        for (k, v) in hash_map_by_ticker {
+            _hash_map_by_ticker.insert(k, Arc::new(v));
+        }
+
+        let mut _hash_map_by_class_code_ticker = HashMap::new();
+        for (k, v) in hash_map_by_class_code_ticker {
+            _hash_map_by_class_code_ticker.insert(k, Arc::new(v));
+        }
+
+        Self {
+            hash_map_by_uid,
+            hash_map_by_figi: _hash_map_by_figi,
+            hash_map_by_ticker: _hash_map_by_ticker,
+            hash_map_by_class_code_ticker: _hash_map_by_class_code_ticker,
+        }
     }
 
     #[inline]
-    pub fn by_figi<T>(&self, value: T) -> Option<types::MarketInstrument>
+    pub fn get_by_uid<T>(&self, value: T) -> Option<CachedMarketInstrument>
     where
-        T: traits::ToFigi,
+        T: traits::ToUidRef,
     {
-        let figi = value.to_figi();
-        self.hash_map_by_figi.get(&figi).cloned()
+        self.hash_map_by_uid.get(value.to_uid_ref()).cloned()
     }
 
     #[inline]
-    pub fn by_ticker<T>(&self, value: T) -> Option<Vec<types::MarketInstrument>>
+    pub fn get_by_figi<T>(&self, value: T) -> Option<Arc<Vec<CachedMarketInstrument>>>
     where
-        T: traits::ToTicker,
+        T: traits::ToFigiRef,
     {
-        let ticker = value.to_ticker();
-        self.hash_map_link_ticker_figi
-            .get(&ticker)
-            .map(|x| x.iter().map(|x| self.by_figi(x).unwrap()).collect())
+        self.hash_map_by_figi.get(value.to_figi_ref()).cloned()
     }
 
     #[inline]
-    pub fn by_class_code_and_ticker<T>(&self, value: T) -> Option<types::MarketInstrument>
+    pub fn get_by_ticker<T>(&self, value: T) -> Option<Arc<Vec<CachedMarketInstrument>>>
+    where
+        T: traits::ToTickerRef,
+    {
+        self.hash_map_by_ticker.get(value.to_ticker_ref()).cloned()
+    }
+
+    #[inline]
+    pub fn get_by_class_code_and_ticker<T>(
+        &self,
+        value: T,
+    ) -> Option<Arc<Vec<CachedMarketInstrument>>>
     where
         T: traits::ToClassCode + traits::ToTicker,
     {
-        let class_code = value.to_class_code();
-        let ticker = value.to_ticker();
-        let key = (class_code, ticker);
-        self.hash_map_link_class_code_ticker_figi
-            .get(&key)
-            .map(|x| self.by_figi(x).unwrap())
-    }
-}
-
-impl Default for CachedMarketInstruments {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl From<Vec<types::MarketInstrument>> for CachedMarketInstruments {
-    fn from(values: Vec<types::MarketInstrument>) -> Self {
-        let mut cached_market_instruments = CachedMarketInstruments::new();
-        cached_market_instruments.append(values);
-        cached_market_instruments
+        let class_code_ticker = (value.to_class_code(), value.to_ticker());
+        self.hash_map_by_class_code_ticker
+            .get(&class_code_ticker)
+            .cloned()
     }
 }

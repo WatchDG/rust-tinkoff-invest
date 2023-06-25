@@ -11,6 +11,7 @@ pub enum Currency {
     SEK,
     NOK,
     CAD,
+    KZT,
     Currency(String),
 }
 
@@ -28,6 +29,7 @@ impl From<String> for Currency {
             "sek" => Currency::SEK,
             "nok" => Currency::NOK,
             "cad" => Currency::CAD,
+            "kzt" => Currency::KZT,
             _ => Currency::Currency(value),
         }
     }
