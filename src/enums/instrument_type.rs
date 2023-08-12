@@ -3,6 +3,7 @@ pub enum InstrumentType {
     Currency,
     Share,
     Future,
+    Option,
 }
 
 impl From<String> for InstrumentType {

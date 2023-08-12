@@ -50,6 +50,15 @@ impl From<tit::Quotation> for MoneyValue {
     }
 }
 
+impl From<tit::MoneyValue> for MoneyValue {
+    fn from(value: tit::MoneyValue) -> Self {
+        MoneyValue {
+            units: value.units,
+            nano: value.nano,
+        }
+    }
+}
+
 impl From<MoneyValue> for tit::Quotation {
     fn from(value: MoneyValue) -> Self {
         tit::Quotation {

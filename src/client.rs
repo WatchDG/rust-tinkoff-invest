@@ -225,6 +225,7 @@ where
             enums::InstrumentType::Share => self.shares().await,
             enums::InstrumentType::Currency => self.currencies().await,
             enums::InstrumentType::Future => self.futures().await,
+            enums::InstrumentType::Option => self.options().await,
         }
     }
 
@@ -239,6 +240,7 @@ where
             enums::InstrumentType::Share => self.share(instrument).await,
             enums::InstrumentType::Currency => self.currency(instrument).await,
             enums::InstrumentType::Future => self.future(instrument).await,
+            enums::InstrumentType::Option => self.option(instrument).await,
         }
     }
 
@@ -341,6 +343,40 @@ where
         };
         request.set_id_type(InstrumentIdType::Figi);
         let future = client.future_by(request).await?.into_inner().instrument;
+        Ok(future.as_ref().map(|x| x.clone().into()))
+    }
+
+    pub async fn options(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+        let client = self
+            .instruments_service_client
+            .as_mut()
+            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+        let mut request = InstrumentsRequest::default();
+        request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
+        let futures = client.options(request).await?.into_inner().instruments;
+        Ok(futures.into_iter().map(|v| v.into()).collect())
+    }
+
+    pub async fn option<T>(
+        &mut self,
+        instrument: T,
+    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    where
+        T: traits::ToInstrumentType + traits::ToFigi,
+    {
+        if instrument.to_instrument_type() != enums::InstrumentType::Future {
+            return Err(TinkoffInvestError::MarketInstrumentTypeNotFuture.into());
+        }
+        let client = self
+            .instruments_service_client
+            .as_mut()
+            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+        let mut request = InstrumentRequest {
+            id: instrument.to_figi().into(),
+            ..Default::default()
+        };
+        request.set_id_type(InstrumentIdType::Figi);
+        let future = client.option_by(request).await?.into_inner().instrument;
         Ok(future.as_ref().map(|x| x.clone().into()))
     }
 
