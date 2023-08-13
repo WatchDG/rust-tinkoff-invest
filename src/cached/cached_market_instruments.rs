@@ -12,7 +12,7 @@ pub struct CachedMarketInstrumentsWrapper {
 #[derive(Debug)]
 pub struct CachedMarketInstruments {
     hash_map_by_uid: HashMap<types::Uid, CachedMarketInstrument>,
-    hash_map_by_figi: HashMap<types::Figi, Arc<Vec<CachedMarketInstrument>>>,
+    hash_map_by_figi: HashMap<Option<types::Figi>, Arc<Vec<CachedMarketInstrument>>>,
     hash_map_by_ticker: HashMap<types::Ticker, Arc<Vec<CachedMarketInstrument>>>,
     hash_map_by_class_code_ticker:
         HashMap<(enums::ClassCode, types::Ticker), Arc<Vec<CachedMarketInstrument>>>,
@@ -22,7 +22,8 @@ impl CachedMarketInstruments {
     #[inline]
     pub fn new(market_instruments: Vec<types::MarketInstrument>) -> Self {
         let mut hash_map_by_uid = HashMap::new();
-        let mut hash_map_by_figi = HashMap::<types::Figi, Vec<CachedMarketInstrument>>::new();
+        let mut hash_map_by_figi =
+            HashMap::<Option<types::Figi>, Vec<CachedMarketInstrument>>::new();
         let mut hash_map_by_ticker = HashMap::<types::Ticker, Vec<CachedMarketInstrument>>::new();
         let mut hash_map_by_class_code_ticker =
             HashMap::<types::ClassCodeTicker, Vec<CachedMarketInstrument>>::new();
@@ -94,11 +95,11 @@ impl CachedMarketInstruments {
     }
 
     #[inline]
-    pub fn get_by_figi<T>(&self, value: T) -> Option<Arc<Vec<CachedMarketInstrument>>>
-    where
-        T: traits::ToFigiRef,
-    {
-        self.hash_map_by_figi.get(value.to_figi_ref()).cloned()
+    pub fn get_by_figi<T>(
+        &self,
+        value: Option<types::Figi>,
+    ) -> Option<Arc<Vec<CachedMarketInstrument>>> {
+        self.hash_map_by_figi.get(&value).cloned()
     }
 
     #[inline]
