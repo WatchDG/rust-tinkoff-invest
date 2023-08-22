@@ -17,6 +17,7 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
+use crate::types::OrderId;
 use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 
 pub struct TinkoffInvestBuilder<I>
@@ -455,6 +456,35 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         Ok(client.get_order_book(request).await?.into_inner().into())
+    }
+
+    pub async fn order_on_account<T>(
+        &mut self,
+        account: T,
+        order_id: OrderId,
+    ) -> Result<types::Order, Box<dyn Error>>
+    where
+        T: traits::ToAccountId,
+    {
+        let client = self
+            .orders_service_client
+            .as_mut()
+            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
+        let request = tinkoff_invest_types::GetOrderStateRequest {
+            account_id: account.to_account_id().into(),
+            order_id: order_id.into(),
+        };
+        let order_state = client.get_order_state(request).await?.into_inner();
+        Ok(types::Order::from(order_state))
+    }
+
+    pub async fn order<T>(&mut self, order_id: OrderId) -> Result<types::Order, Box<dyn Error>> {
+        let account = self
+            .account
+            .as_ref()
+            .ok_or(TinkoffInvestError::AccountNotSet)?
+            .clone();
+        self.order_on_account(&account, order_id).await
     }
 
     #[inline]
