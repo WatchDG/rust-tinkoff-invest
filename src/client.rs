@@ -1,6 +1,7 @@
 use std::error::Error;
 use uuid::Uuid;
 
+use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 use tinkoff_invest_types::{
     self, instruments_service_client::InstrumentsServiceClient,
     market_data_service_client::MarketDataServiceClient,
@@ -16,9 +17,6 @@ use tonic::{
     service::Interceptor,
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
-
-use crate::types::OrderId;
-use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
 
 pub struct TinkoffInvestBuilder<I>
 where
@@ -461,7 +459,7 @@ where
     pub async fn order_on_account<T>(
         &mut self,
         account: T,
-        order_id: OrderId,
+        order_id: types::OrderId,
     ) -> Result<types::Order, Box<dyn Error>>
     where
         T: traits::ToAccountId,
@@ -478,7 +476,10 @@ where
         Ok(types::Order::from(order_state))
     }
 
-    pub async fn order<T>(&mut self, order_id: OrderId) -> Result<types::Order, Box<dyn Error>> {
+    pub async fn order<T>(
+        &mut self,
+        order_id: types::OrderId,
+    ) -> Result<types::Order, Box<dyn Error>> {
         let account = self
             .account
             .as_ref()
@@ -544,7 +545,7 @@ where
     pub async fn portfolio_on_account<T>(
         &mut self,
         account: T,
-    ) -> Result<types::Portfolio, Box<dyn Error>>
+    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>>
     where
         T: traits::ToAccountId,
     {
@@ -557,11 +558,18 @@ where
             .operations_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
-        let portfolio = client.get_portfolio(request).await?.into_inner().into();
-        Ok(portfolio)
+        let portfolio_positions = client
+            .get_portfolio(request)
+            .await?
+            .into_inner()
+            .positions
+            .iter()
+            .map(|x| x.into())
+            .collect();
+        Ok(portfolio_positions)
     }
 
-    pub async fn portfolio(&mut self) -> Result<types::Portfolio, Box<dyn Error>> {
+    pub async fn portfolio(&mut self) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
         let account = self
             .account
             .as_ref()

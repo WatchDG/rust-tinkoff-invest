@@ -5,10 +5,6 @@ use crate::{enums, traits, types};
 
 pub type CachedMarketInstrument = Arc<RwLock<types::MarketInstrument>>;
 
-pub struct CachedMarketInstrumentsWrapper {
-    inner: Arc<RwLock<CachedMarketInstruments>>,
-}
-
 #[derive(Debug)]
 pub struct CachedMarketInstruments {
     hash_map_by_uid: HashMap<types::Uid, CachedMarketInstrument>,

@@ -28,7 +28,7 @@ pub use operation::Operation;
 pub use order::Order;
 pub use order_id::OrderId;
 pub use orderbook::{OrderBook, OrderBookOrder};
-pub use portfolio::{Portfolio, PortfolioPosition};
+pub use portfolio::PortfolioPosition;
 pub use positions::Positions;
 pub use ticker::Ticker;
 pub use trade::Trade;
