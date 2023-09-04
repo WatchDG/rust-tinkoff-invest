@@ -31,7 +31,8 @@ impl CachedPortfolio {
         let key = portfolio_position.instrument_uid.clone();
         if let Some(lock) = self.inner.get(&key) {
             let mut value = lock.write().unwrap();
-            value.quantity = portfolio_position.quantity;
+            value.quantity_total = portfolio_position.quantity_total;
+            value.quantity_blocked = portfolio_position.quantity_blocked;
         }
     }
 

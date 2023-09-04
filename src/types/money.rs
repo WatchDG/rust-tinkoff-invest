@@ -19,10 +19,26 @@ impl MoneyValue {
 impl Add for MoneyValue {
     type Output = MoneyValue;
     fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            units: self.units + rhs.units + ((self.nano + rhs.nano) / 1_000_000_000) as i64,
-            nano: (self.nano + rhs.nano) % 1_000_000_000,
+        let mut units = self.units + rhs.units;
+        let mut nano = self.nano + rhs.nano;
+
+        if nano >= 1_000_000_000 {
+            units += 1;
+            nano -= 1_000_000_000;
+        } else if nano <= -1_000_000_000 {
+            units -= 1;
+            nano += 1_000_000_000;
         }
+
+        if units >= 1 && nano < 0 {
+            units -= 1;
+            nano += 1_000_000_000;
+        } else if units <= -1 && nano > 0 {
+            units += 1;
+            nano -= 1_000_000_000;
+        }
+
+        Self { units, nano }
     }
 }
 
@@ -103,5 +119,85 @@ impl From<&tit::MoneyValue> for Money {
             },
             currency: value.currency.clone().into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::types::MoneyValue;
+
+    #[test]
+    fn test_1() {
+        let a = MoneyValue {
+            units: 1,
+            nano: 100_000_000,
+        };
+        let b = MoneyValue {
+            units: 0,
+            nano: 900_000_000,
+        };
+        let c = a + b;
+        assert_eq!(c.units, 2);
+        assert_eq!(c.nano, 0)
+    }
+
+    #[test]
+    fn test_2() {
+        let a = MoneyValue {
+            units: 1,
+            nano: 100_000_000,
+        };
+        let b = MoneyValue {
+            units: -0,
+            nano: -900_000_000,
+        };
+        let c = a + b;
+        assert_eq!(c.units, 0);
+        assert_eq!(c.nano, 200_000_000);
+    }
+
+    #[test]
+    fn test_3() {
+        let a = MoneyValue {
+            units: 0,
+            nano: 100_000_000,
+        };
+        let b = MoneyValue {
+            units: -0,
+            nano: -900_000_000,
+        };
+        let c = a + b;
+        assert_eq!(c.units, 0);
+        assert_eq!(c.nano, -800_000_000);
+    }
+
+    #[test]
+    fn test_4() {
+        let a = MoneyValue {
+            units: -0,
+            nano: -100_000_000,
+        };
+        let b = MoneyValue {
+            units: -0,
+            nano: -900_000_000,
+        };
+        let c = a + b;
+        assert_eq!(c.units, -1);
+        assert_eq!(c.nano, 0);
+    }
+
+    #[test]
+    fn test_5() {
+        let a = MoneyValue {
+            units: 0,
+            nano: 900_000_000,
+        };
+        let b = MoneyValue {
+            units: -1,
+            nano: -700_000_000,
+        };
+        let c = a + b;
+        assert_eq!(c.units, 0);
+        assert_eq!(c.nano, -800_000_000);
     }
 }
