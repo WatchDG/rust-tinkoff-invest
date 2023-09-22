@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::time::Duration;
 use uuid::Uuid;
 
 use crate::{enums, traits, types, TinkoffInvestError, TinkoffInvestInterceptor};
@@ -39,7 +40,8 @@ where
     pub fn new() -> Self {
         let endpoint = Channel::from_static("https://invest-public-api.tinkoff.ru")
             .tls_config(ClientTlsConfig::new())
-            .unwrap();
+            .unwrap()
+            .timeout(Duration::from_millis(10000));
         Self {
             endpoint,
             interceptor: None,
