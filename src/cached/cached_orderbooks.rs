@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
+use crate::traits;
 use crate::types;
 
 #[derive(Debug)]
 pub struct CachedOrderbooks {
-    inner: HashMap<types::Figi, types::OrderBook>,
+    inner: HashMap<types::Uid, types::OrderBook>,
 }
 
 impl CachedOrderbooks {
@@ -16,15 +17,22 @@ impl CachedOrderbooks {
     }
 
     pub fn add(&mut self, orderbook: types::OrderBook) {
-        self.inner.insert(orderbook.figi.clone(), orderbook);
+        self.inner
+            .insert(orderbook.instrument_uid.clone(), orderbook);
     }
 
-    pub fn remove(&mut self, figi: &types::Figi) {
-        self.inner.remove(figi);
+    pub fn remove<T>(&mut self, instrument_id: T)
+    where
+        T: traits::ToUidRef,
+    {
+        self.inner.remove(instrument_id.to_uid_ref());
     }
 
-    pub fn get(&self, figi: &types::Figi) -> Option<&types::OrderBook> {
-        self.inner.get(figi)
+    pub fn get<T>(&self, instrument_id: T) -> Option<&types::OrderBook>
+    where
+        T: traits::ToUidRef,
+    {
+        self.inner.get(instrument_id.to_uid_ref())
     }
 }
 

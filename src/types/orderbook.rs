@@ -5,8 +5,7 @@ use crate::types;
 /// Книга заявок.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OrderBook {
-    /// FIGI инструмента книги заявок.
-    pub figi: types::Figi,
+    pub instrument_uid: types::Uid,
     /// Глубина стакана.
     pub depth: u32,
     /// Заказы на покупку книги заявок.
@@ -30,7 +29,8 @@ impl From<tit::GetOrderBookResponse> for OrderBook {
         let bid_orders = value.bids.iter().map(|x| x.clone().into()).collect();
         let ask_orders = value.asks.iter().map(|x| x.clone().into()).collect();
         Self {
-            figi: value.figi.into(),
+            // figi: value.figi.into(),
+            instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
             depth: value.depth as u32,
             bid_orders,
             ask_orders,
@@ -48,7 +48,7 @@ impl From<tit::OrderBook> for OrderBook {
         let bid_orders = value.bids.iter().map(|x| x.clone().into()).collect();
         let ask_orders = value.asks.iter().map(|x| x.clone().into()).collect();
         Self {
-            figi: value.figi.into(),
+            instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
             depth: value.depth as u32,
             bid_orders,
             ask_orders,

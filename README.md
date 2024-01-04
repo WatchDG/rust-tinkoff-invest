@@ -14,11 +14,11 @@ use tinkoff_invest::TinkoffInvest;
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    
+
     let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let accounts = tinkoff.accounts().await?;
-    
+
     println!("accounts: {:?}", accounts);
 
     Ok(())
@@ -33,7 +33,7 @@ use tinkoff_invest::{enums::InstrumentType, TinkoffInvest};
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    
+
     let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let market_instruments = tinkoff
@@ -54,7 +54,7 @@ use tinkoff_invest::{enums::CandlestickInterval, extra::chrono, types::Figi, Tin
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    
+
     let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let figi = Figi::from("BBG004730N88");
@@ -78,7 +78,7 @@ use tinkoff_invest::{types::Figi, TinkoffInvest};
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    
+
     let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let figi = Figi::from("BBG004730N88");
@@ -98,7 +98,7 @@ use tinkoff_invest::{enums::OperationState, extra::chrono, types::Figi, TinkoffI
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    
+
     let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let accounts = tinkoff.accounts().await?;
@@ -128,7 +128,7 @@ use tinkoff_invest::TinkoffInvest;
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    
+
     let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let accounts = tinkoff.accounts().await?;
@@ -173,7 +173,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     let mut broadcast_receiver = market_data_stream.subscribe();
-    
+
     tokio::spawn(async move {
         while let MarketDataStreamData::Candlestick(candlestick) = broadcast_receiver.recv().await.unwrap() {
             println!("{:?}", candlestick);
@@ -185,7 +185,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
-
 
 ## Cached Market Instruments
 
@@ -201,7 +200,7 @@ use tinkoff_invest::{
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = "...";
-    
+
     let mut tinkoff = TinkoffInvest::new(token.into()).await?;
 
     let market_instruments = tinkoff
@@ -209,14 +208,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     let cached_market_instruments = CachedMarketInstruments::from(market_instruments);
-    
+
     // find by figi
     {
         let figi = Figi::from("BBG004730N88");
         let market_instrument = cached_market_instruments.by_figi(&figi).unwrap();
         println!("{:?}", market_instrument);
     }
-    
+
     // find by class code and ticker
     {
         let class_code_ticker = (ClassCode::TQBR, Ticker::from("SBER"));
@@ -225,7 +224,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap();
         println!("{:?}", market_instrument);
     }
-    
+
     // find by ticker
     {
         let ticker = Ticker::from("SBER");
@@ -241,12 +240,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use std::sync::Arc;
+use std::time::Duration;
 use tinkoff_invest::cached::CachedOrderbooks;
 use tinkoff_invest::enums::MarketDataStreamData;
 use tinkoff_invest::streams::MarketDataStreamBuilder;
-use tinkoff_invest::types::Figi;
+use tinkoff_invest::types::Uid;
 use tinkoff_invest::TinkoffInvest;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 #[tokio::main()]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -256,23 +256,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let market_data_stream_builder = MarketDataStreamBuilder::from(&tinkoff);
     let mut market_data_stream = market_data_stream_builder.build().await?;
+
     market_data_stream
-        .subscribe_orderbook(
-            &[&Figi::from("BBG004730N88"), &Figi::from("BBG000BM2FL9")],
-            10,
-        )
+        .subscribe_orderbook(&[Uid::from("e6123145-9665-43e0-8413-cd61b8aa9b13")], 10)
         .await?;
+
     let mut broadcast_receiver = market_data_stream.subscribe();
 
-    let cached_orderbooks = Arc::new(Mutex::new(CachedOrderbooks::new()));
+    let cached_orderbooks = Arc::new(RwLock::new(CachedOrderbooks::new()));
 
-    let thread_cached_orderbooks = cached_orderbooks.clone();
+    let write_thread_cached_orderbooks = cached_orderbooks.clone();
     tokio::spawn(async move {
         loop {
             match broadcast_receiver.recv().await {
                 Ok(MarketDataStreamData::Orderbook(orderbook)) => {
-                    println!("orderbook: {:?}", orderbook);
-                    thread_cached_orderbooks.lock().await.add(orderbook);
+                    write_thread_cached_orderbooks.write().await.add(orderbook);
                 }
                 Err(error) => {
                     println!("error: {}", error);
@@ -282,7 +280,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    market_data_stream.task.await?;
+    let read_thread_cached_orderbooks = cached_orderbooks.clone();
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            let lock_guard = read_thread_cached_orderbooks.read().await;
+            let orderbook = lock_guard.get(&Uid::from("e6123145-9665-43e0-8413-cd61b8aa9b13"));
+            println!("orderbook: {:?}", orderbook);
+        }
+    }).await?;
 
     Ok(())
 }
