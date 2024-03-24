@@ -1,4 +1,5 @@
 /.idea
+/.vs
 /target
 /src/main.rs
 Cargo.lock

@@ -65,7 +65,18 @@ impl From<&CandlestickInterval> for tit::SubscriptionInterval {
         match v {
             CandlestickInterval::Unspecified => tit::SubscriptionInterval::Unspecified,
             CandlestickInterval::Min => tit::SubscriptionInterval::OneMinute,
+            CandlestickInterval::Min2 => tit::SubscriptionInterval::SubscriptionInterval2Min,
+            CandlestickInterval::Min3 => tit::SubscriptionInterval::SubscriptionInterval3Min,
             CandlestickInterval::Min5 => tit::SubscriptionInterval::FiveMinutes,
+            CandlestickInterval::Min10 => tit::SubscriptionInterval::SubscriptionInterval10Min,
+            CandlestickInterval::Min15 => tit::SubscriptionInterval::FifteenMinutes,
+            CandlestickInterval::Min30 => tit::SubscriptionInterval::SubscriptionInterval30Min,
+            CandlestickInterval::Hour => tit::SubscriptionInterval::OneHour,
+            CandlestickInterval::Hour2 => tit::SubscriptionInterval::SubscriptionInterval2Hour,
+            CandlestickInterval::Hour4 => tit::SubscriptionInterval::SubscriptionInterval4Hour,
+            CandlestickInterval::Day => tit::SubscriptionInterval::OneDay,
+            CandlestickInterval::Week => tit::SubscriptionInterval::Week,
+            CandlestickInterval::Month => tit::SubscriptionInterval::Month,
             _ => panic!("subscription does not support interval: {v:?}"),
         }
     }
@@ -76,7 +87,18 @@ impl From<tit::SubscriptionInterval> for CandlestickInterval {
         match v {
             tit::SubscriptionInterval::Unspecified => CandlestickInterval::Unspecified,
             tit::SubscriptionInterval::OneMinute => CandlestickInterval::Min,
+            tit::SubscriptionInterval::SubscriptionInterval2Min => CandlestickInterval::Min2,
+            tit::SubscriptionInterval::SubscriptionInterval3Min => CandlestickInterval::Min3,
             tit::SubscriptionInterval::FiveMinutes => CandlestickInterval::Min5,
+            tit::SubscriptionInterval::SubscriptionInterval10Min => CandlestickInterval::Min10,
+            tit::SubscriptionInterval::FifteenMinutes => CandlestickInterval::Min15,
+            tit::SubscriptionInterval::SubscriptionInterval30Min => CandlestickInterval::Min30,
+            tit::SubscriptionInterval::OneHour => CandlestickInterval::Hour,
+            tit::SubscriptionInterval::SubscriptionInterval2Hour => CandlestickInterval::Hour2,
+            tit::SubscriptionInterval::SubscriptionInterval4Hour => CandlestickInterval::Hour4,
+            tit::SubscriptionInterval::OneDay => CandlestickInterval::Day,
+            tit::SubscriptionInterval::Week => CandlestickInterval::Week,
+            tit::SubscriptionInterval::Month => CandlestickInterval::Month,
         }
     }
 }

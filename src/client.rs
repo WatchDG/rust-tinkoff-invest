@@ -393,7 +393,7 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let request = GetTradingStatusRequest {
-            instrument_id: instrument.to_uid().into(),
+            instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
         Ok(client
@@ -416,7 +416,7 @@ where
     {
         let uid = instrument.to_uid();
         let mut request = GetCandlesRequest {
-            instrument_id: uid.clone().into(),
+            instrument_id: Some(uid.clone().into()),
             from: Some(from.into()),
             to: Some(to.into()),
             ..Default::default()
@@ -448,7 +448,7 @@ where
     {
         let request = GetOrderBookRequest {
             depth: depth as i32,
-            instrument_id: instrument.to_uid().into(),
+            instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
         let client = self
@@ -473,6 +473,7 @@ where
         let request = tinkoff_invest_types::GetOrderStateRequest {
             account_id: account.to_account_id().into(),
             order_id: order_id.into(),
+            ..Default::default()
         };
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
@@ -511,8 +512,8 @@ where
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let mut request = OperationsRequest {
             account_id: account.to_account_id().into(),
-            figi: instrument.to_figi().into(),
-            state: 0,
+            figi: Some(instrument.to_figi().into()),
+            state: Some(0),
             from,
             to,
         };
