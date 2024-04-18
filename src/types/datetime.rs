@@ -27,15 +27,17 @@ impl PartialOrd for DateTime {
 impl From<chrono::NaiveDateTime> for DateTime {
     fn from(value: chrono::NaiveDateTime) -> Self {
         DateTime {
-            seconds: value.timestamp(),
-            nanoseconds: value.timestamp_subsec_nanos(),
+            seconds: value.and_utc().timestamp(),
+            nanoseconds: value.and_utc().timestamp_subsec_nanos(),
         }
     }
 }
 
 impl From<DateTime> for chrono::NaiveDateTime {
     fn from(value: DateTime) -> Self {
-        chrono::NaiveDateTime::from_timestamp_opt(value.seconds, value.nanoseconds).unwrap()
+        chrono::DateTime::from_timestamp(value.seconds, value.nanoseconds)
+            .unwrap()
+            .naive_utc()
     }
 }
 
