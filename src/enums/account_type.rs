@@ -6,6 +6,7 @@ pub enum AccountType {
     Tinkoff,
     TinkoffIis,
     InvestBox,
+    InvestFund,
 }
 
 impl From<tit::AccountType> for AccountType {
@@ -15,6 +16,7 @@ impl From<tit::AccountType> for AccountType {
             tit::AccountType::Tinkoff => AccountType::Tinkoff,
             tit::AccountType::TinkoffIis => AccountType::TinkoffIis,
             tit::AccountType::InvestBox => AccountType::InvestBox,
+            tit::AccountType::InvestFund => AccountType::InvestFund,
         }
     }
 }

@@ -65,6 +65,7 @@ pub enum OperationType {
     OverCom,
     OverIncome,
     OptionExpiration,
+    FutureExpiration,
 }
 
 impl From<tit::OperationType> for OperationType {
@@ -132,6 +133,7 @@ impl From<tit::OperationType> for OperationType {
             tit::OperationType::OverCom => OperationType::OverCom,
             tit::OperationType::OverIncome => OperationType::OverIncome,
             tit::OperationType::OptionExpiration => OperationType::OptionExpiration,
+            tit::OperationType::FutureExpiration => OperationType::FutureExpiration,
         }
     }
 }
