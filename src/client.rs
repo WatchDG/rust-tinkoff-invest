@@ -10,7 +10,7 @@ use tinkoff_invest_types::{
     portfolio_request::CurrencyRequest, users_service_client::UsersServiceClient,
     CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
-    OperationsRequest, PortfolioRequest, PositionsRequest, PostOrderRequest,
+    OperationsRequest, OrderIdType, PortfolioRequest, PositionsRequest, PostOrderRequest,
 };
 use tonic::{
     codec::CompressionEncoding,
@@ -213,7 +213,9 @@ where
             .users_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::UsersServiceClientNotInit)?;
-        let request = GetAccountsRequest {};
+        let request = GetAccountsRequest {
+            ..Default::default()
+        };
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
         Ok(accounts.iter().map(|v| v.clone().into()).collect())
     }
@@ -671,10 +673,12 @@ where
         T: traits::ToAccountId,
         K: traits::ToOrderId,
     {
-        let request = CancelOrderRequest {
+        let mut request = CancelOrderRequest {
             account_id: account.to_account_id().into(),
             order_id: order.to_order_id().into(),
+            ..Default::default()
         };
+        request.set_order_id_type(OrderIdType::Exchange);
         let client = self
             .orders_service_client
             .as_mut()

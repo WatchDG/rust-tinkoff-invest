@@ -6,6 +6,7 @@ pub enum AccountStatus {
     New,
     Open,
     Closed,
+    All,
 }
 
 impl From<tit::AccountStatus> for AccountStatus {
@@ -15,6 +16,7 @@ impl From<tit::AccountStatus> for AccountStatus {
             tit::AccountStatus::New => AccountStatus::New,
             tit::AccountStatus::Open => AccountStatus::Open,
             tit::AccountStatus::Closed => AccountStatus::Closed,
+            tit::AccountStatus::All => AccountStatus::All,
         }
     }
 }
