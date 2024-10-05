@@ -39,7 +39,7 @@ where
     #[inline]
     pub fn new() -> Self {
         let endpoint = Channel::from_static("https://invest-public-api.tinkoff.ru")
-            .tls_config(ClientTlsConfig::new())
+            .tls_config(ClientTlsConfig::new().with_native_roots())
             .unwrap()
             .timeout(Duration::from_millis(10000));
         Self {
@@ -106,6 +106,7 @@ where
                 UsersServiceClient::with_interceptor(channel.clone(), interceptor.clone());
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
+            client = client.max_decoding_message_size(256 * 1024 * 1024);
             Some(client)
         } else {
             None
@@ -115,6 +116,7 @@ where
                 InstrumentsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
+            client = client.max_decoding_message_size(256 * 1024 * 1024);
             Some(client)
         } else {
             None
@@ -124,6 +126,7 @@ where
                 MarketDataServiceClient::with_interceptor(channel.clone(), interceptor.clone());
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
+            client = client.max_decoding_message_size(256 * 1024 * 1024);
             Some(client)
         } else {
             None
@@ -133,6 +136,7 @@ where
                 OperationsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
+            client = client.max_decoding_message_size(256 * 1024 * 1024);
             Some(client)
         } else {
             None
@@ -142,6 +146,7 @@ where
                 OrdersServiceClient::with_interceptor(channel.clone(), interceptor.clone());
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
+            client = client.max_decoding_message_size(256 * 1024 * 1024);
             Some(client)
         } else {
             None
