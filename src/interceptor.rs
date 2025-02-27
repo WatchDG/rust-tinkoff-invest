@@ -1,4 +1,4 @@
-use tonic::{service::Interceptor, Request, Status};
+use tonic::{Request, Status, service::Interceptor};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]

@@ -39,7 +39,7 @@ impl CachedPortfolio {
     #[inline]
     pub fn upsert(&mut self, portfolio_position: types::PortfolioPosition) {
         let key = portfolio_position.instrument_uid.clone();
-        if self.inner.get(&key).is_some() {
+        if self.inner.contains_key(&key) {
             self.update(portfolio_position);
         } else {
             self.insert(portfolio_position)

@@ -9,7 +9,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::transport::Endpoint;
 use tonic::{service::Interceptor, transport::Channel};
 
-use crate::{enums, traits, TinkoffInvest, TinkoffInvestError};
+use crate::{TinkoffInvest, TinkoffInvestError, enums, traits};
 
 pub struct MarketDataStreamBuilder<I>
 where

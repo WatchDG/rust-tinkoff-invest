@@ -26,8 +26,8 @@ pub struct OrderBook {
 
 impl From<tit::GetOrderBookResponse> for OrderBook {
     fn from(value: tit::GetOrderBookResponse) -> Self {
-        let bid_orders = value.bids.iter().map(|x| x.clone().into()).collect();
-        let ask_orders = value.asks.iter().map(|x| x.clone().into()).collect();
+        let bid_orders = value.bids.iter().map(|&x| x.into()).collect();
+        let ask_orders = value.asks.iter().map(|&x| x.into()).collect();
         Self {
             // figi: value.figi.into(),
             instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
@@ -45,8 +45,8 @@ impl From<tit::GetOrderBookResponse> for OrderBook {
 
 impl From<tit::OrderBook> for OrderBook {
     fn from(value: tit::OrderBook) -> Self {
-        let bid_orders = value.bids.iter().map(|x| x.clone().into()).collect();
-        let ask_orders = value.asks.iter().map(|x| x.clone().into()).collect();
+        let bid_orders = value.bids.iter().map(|&x| x.into()).collect();
+        let ask_orders = value.asks.iter().map(|&x| x.into()).collect();
         Self {
             instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
             depth: value.depth as u32,

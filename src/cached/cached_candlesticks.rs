@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use crate::{types, TinkoffInvestError};
+use crate::{TinkoffInvestError, types};
 
 #[derive(Debug)]
 pub struct CachedCandlesticksBucket {

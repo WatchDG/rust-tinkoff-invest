@@ -59,24 +59,24 @@ impl From<tit::Currency> for MarketInstrument {
 impl From<tit::Share> for MarketInstrument {
     fn from(value: tit::Share) -> Self {
         let trading_status = value.trading_status().into();
-        let risk_rate_long = if let Some(klong) = value.klong {
-            match klong.units {
-                2 => value.dlong.map(|x| x.into()),
-                1 => value.dlong_min.map(|x| x.into()),
-                _ => None,
-            }
-        } else {
-            None
-        };
-        let risk_rate_short = if let Some(kshort) = value.kshort {
-            match kshort.units {
-                2 => value.dshort.map(|x| x.into()),
-                1 => value.dshort_min.map(|x| x.into()),
-                _ => None,
-            }
-        } else {
-            None
-        };
+        // let risk_rate_long = if let Some(klong) = value.klong {
+        //     match klong.units {
+        //         2 => value.dlong.map(|x| x.into()),
+        //         1 => value.dlong_min.map(|x| x.into()),
+        //         _ => None,
+        //     }
+        // } else {
+        //     None
+        // };
+        // let risk_rate_short = if let Some(kshort) = value.kshort {
+        //     match kshort.units {
+        //         2 => value.dshort.map(|x| x.into()),
+        //         1 => value.dshort_min.map(|x| x.into()),
+        //         _ => None,
+        //     }
+        // } else {
+        //     None
+        // };
         Self {
             uid: value.uid.as_str().into(),
             figi: Some(value.figi.into()),
@@ -89,8 +89,8 @@ impl From<tit::Share> for MarketInstrument {
             currency: value.currency.into(),
             min_price_increment: value.min_price_increment.map(|x| x.into()),
             trading_status,
-            risk_rate_long,
-            risk_rate_short,
+            risk_rate_long: None,
+            risk_rate_short: None,
             future_asset: None,
             future_asset_size: None,
             future_expiration_date: None,
@@ -106,24 +106,24 @@ impl From<tit::Share> for MarketInstrument {
 impl From<tit::Future> for MarketInstrument {
     fn from(value: tit::Future) -> Self {
         let trading_status = value.trading_status().into();
-        let risk_rate_long = if let Some(klong) = value.klong {
-            match klong.units {
-                2 => value.dlong.map(|x| x.into()),
-                1 => value.dlong_min.map(|x| x.into()),
-                _ => None,
-            }
-        } else {
-            None
-        };
-        let risk_rate_short = if let Some(kshort) = value.kshort {
-            match kshort.units {
-                2 => value.dshort.map(|x| x.into()),
-                1 => value.dshort_min.map(|x| x.into()),
-                _ => None,
-            }
-        } else {
-            None
-        };
+        // let risk_rate_long = if let Some(klong) = value.klong {
+        //     match klong.units {
+        //         2 => value.dlong.map(|x| x.into()),
+        //         1 => value.dlong_min.map(|x| x.into()),
+        //         _ => None,
+        //     }
+        // } else {
+        //     None
+        // };
+        // let risk_rate_short = if let Some(kshort) = value.kshort {
+        //     match kshort.units {
+        //         2 => value.dshort.map(|x| x.into()),
+        //         1 => value.dshort_min.map(|x| x.into()),
+        //         _ => None,
+        //     }
+        // } else {
+        //     None
+        // };
         Self {
             uid: value.uid.as_str().into(),
             figi: Some(value.figi.into()),
@@ -136,8 +136,8 @@ impl From<tit::Future> for MarketInstrument {
             currency: value.currency.into(),
             min_price_increment: value.min_price_increment.map(|x| x.into()),
             trading_status,
-            risk_rate_long,
-            risk_rate_short,
+            risk_rate_long: None,
+            risk_rate_short: None,
             future_asset: Some(value.basic_asset),
             future_asset_size: value.basic_asset_size.map(|x| x.into()),
             future_expiration_date: value.expiration_date.map(|x| x.into()),

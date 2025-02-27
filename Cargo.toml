@@ -1,6 +1,6 @@
 [package]
 name = "tinkoff-invest"
-version = "2.32.4"
+version = "2.32.5"
 authors = ["WatchDG <baranov@w3m.co>"]
 license = "MIT OR Apache-2.0"
 description = "tinkoff invest library"
@@ -8,7 +8,7 @@ homepage = "https://github.com/WatchDG/rust-tinkoff-invest"
 documentation = "https://docs.rs/tinkoff-invest"
 repository = "https://github.com/WatchDG/rust-tinkoff-invest"
 readme = "README.md"
-edition = "2021"
+edition = "2024"
 exclude = [
     ".github",
     ".vs",

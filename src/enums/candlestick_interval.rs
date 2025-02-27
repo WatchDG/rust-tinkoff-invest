@@ -77,7 +77,6 @@ impl From<&CandlestickInterval> for tit::SubscriptionInterval {
             CandlestickInterval::Day => tit::SubscriptionInterval::OneDay,
             CandlestickInterval::Week => tit::SubscriptionInterval::Week,
             CandlestickInterval::Month => tit::SubscriptionInterval::Month,
-            _ => panic!("subscription does not support interval: {v:?}"),
         }
     }
 }
