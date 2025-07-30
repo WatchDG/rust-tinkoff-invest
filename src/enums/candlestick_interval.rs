@@ -3,6 +3,9 @@ use tinkoff_invest_types as tit;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CandlestickInterval {
     Unspecified,
+    Second5,
+    Second10,
+    Second30,
     Min,
     Min2,
     Min3,
@@ -22,6 +25,9 @@ impl From<tit::CandleInterval> for CandlestickInterval {
     fn from(value: tit::CandleInterval) -> Self {
         match value {
             tit::CandleInterval::Unspecified => CandlestickInterval::Unspecified,
+            tit::CandleInterval::CandleInterval5Sec => CandlestickInterval::Second5,
+            tit::CandleInterval::CandleInterval10Sec => CandlestickInterval::Second10,
+            tit::CandleInterval::CandleInterval30Sec => CandlestickInterval::Second30,
             tit::CandleInterval::CandleInterval1Min => CandlestickInterval::Min,
             tit::CandleInterval::CandleInterval2Min => CandlestickInterval::Min2,
             tit::CandleInterval::CandleInterval3Min => CandlestickInterval::Min3,
@@ -43,6 +49,9 @@ impl From<CandlestickInterval> for tit::CandleInterval {
     fn from(value: CandlestickInterval) -> Self {
         match value {
             CandlestickInterval::Unspecified => tit::CandleInterval::Unspecified,
+            CandlestickInterval::Second5 => tit::CandleInterval::CandleInterval5Sec,
+            CandlestickInterval::Second10 => tit::CandleInterval::CandleInterval10Sec,
+            CandlestickInterval::Second30 => tit::CandleInterval::CandleInterval30Sec,
             CandlestickInterval::Min => tit::CandleInterval::CandleInterval1Min,
             CandlestickInterval::Min2 => tit::CandleInterval::CandleInterval2Min,
             CandlestickInterval::Min3 => tit::CandleInterval::CandleInterval3Min,
@@ -77,6 +86,7 @@ impl From<&CandlestickInterval> for tit::SubscriptionInterval {
             CandlestickInterval::Day => tit::SubscriptionInterval::OneDay,
             CandlestickInterval::Week => tit::SubscriptionInterval::Week,
             CandlestickInterval::Month => tit::SubscriptionInterval::Month,
+            _ => tit::SubscriptionInterval::Unspecified,
         }
     }
 }
