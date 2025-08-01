@@ -11,7 +11,7 @@ use tonic::{service::Interceptor, transport::Channel};
 use crate::{TinkoffInvest, TinkoffInvestError, enums, traits, types};
 
 /// Подписчик на рыночные данные
-/// 
+///
 /// Предоставляет удобный интерфейс для получения обновлений рыночных данных
 /// из потока MarketDataStream. Поддерживает получение свечей и стаканов.
 pub struct MarketDataSubscriber {
@@ -25,10 +25,12 @@ impl MarketDataSubscriber {
     }
 
     /// Получает следующее сообщение из потока рыночных данных
-    /// 
+    ///
     /// Возвращает `Ok(Some(data))` если получено сообщение,
     /// `Ok(None)` если поток закрыт, или `Err` при ошибке.
-    pub async fn recv(&mut self) -> Result<Option<enums::MarketDataStreamData>, broadcast::error::RecvError> {
+    pub async fn recv(
+        &mut self,
+    ) -> Result<Option<enums::MarketDataStreamData>, broadcast::error::RecvError> {
         match self.receiver.recv().await {
             Ok(data) => Ok(Some(data)),
             Err(broadcast::error::RecvError::Closed) => Ok(None),
@@ -37,17 +39,19 @@ impl MarketDataSubscriber {
     }
 
     /// Получает только свечи из потока данных
-    /// 
+    ///
     /// Фильтрует сообщения и возвращает только данные свечей.
     /// Возвращает `Ok(Some(candlestick))` если получена свеча,
     /// `Ok(None)` если поток закрыт, или `Err` при ошибке.
-    pub async fn recv_candlestick(&mut self) -> Result<Option<types::Candlestick>, broadcast::error::RecvError> {
+    pub async fn recv_candlestick(
+        &mut self,
+    ) -> Result<Option<types::Candlestick>, broadcast::error::RecvError> {
         loop {
             match self.recv().await? {
                 Some(enums::MarketDataStreamData::Candlestick(candlestick)) => {
                     return Ok(Some(candlestick));
                 }
-                Some(_) => continue, // Пропускаем другие типы данных
+                Some(_) => continue,     // Пропускаем другие типы данных
                 None => return Ok(None), // Поток закрыт
             }
         }
@@ -58,13 +62,15 @@ impl MarketDataSubscriber {
     /// Фильтрует сообщения и возвращает только данные стаканов.
     /// Возвращает `Ok(Some(orderbook))` если получен стакан,
     /// `Ok(None)` если поток закрыт, или `Err` при ошибке.
-    pub async fn recv_orderbook(&mut self) -> Result<Option<types::OrderBook>, broadcast::error::RecvError> {
+    pub async fn recv_orderbook(
+        &mut self,
+    ) -> Result<Option<types::OrderBook>, broadcast::error::RecvError> {
         loop {
             match self.recv().await? {
                 Some(enums::MarketDataStreamData::Orderbook(orderbook)) => {
                     return Ok(Some(orderbook));
                 }
-                Some(_) => continue, // Пропускаем другие типы данных
+                Some(_) => continue,     // Пропускаем другие типы данных
                 None => return Ok(None), // Поток закрыт
             }
         }
@@ -212,7 +218,7 @@ pub struct MarketDataStream {
 
 impl MarketDataStream {
     /// Создает нового подписчика на рыночные данные
-    /// 
+    ///
     /// Возвращает `MarketDataSubscriber`, который предоставляет удобный интерфейс
     /// для получения обновлений рыночных данных из нескольких потоков.
     pub fn subscribe(&self) -> MarketDataSubscriber {
@@ -300,23 +306,16 @@ impl MarketDataStream {
     where
         T: traits::ToUid,
     {
-        let default_instrument = tit::OrderBookInstrument {
-            depth: depth as i32,
-            ..Default::default()
-        };
-
-        let instruments = instruments
-            .iter()
-            .map(|x| {
-                let mut instrument = default_instrument.clone();
-                instrument.instrument_id = x.to_uid().into();
-                instrument
-            })
-            .collect();
-
         let mut subscribe_request = tit::SubscribeOrderBookRequest::default();
         subscribe_request.set_subscription_action(tit::SubscriptionAction::Subscribe);
-        subscribe_request.instruments = instruments;
+        subscribe_request.instruments = instruments
+            .iter()
+            .map(|instrument| tit::OrderBookInstrument {
+                instrument_id: instrument.to_uid().into(),
+                depth: depth as i32,
+                ..Default::default()
+            })
+            .collect();
 
         let payload =
             tit::market_data_request::Payload::SubscribeOrderBookRequest(subscribe_request);
@@ -338,23 +337,16 @@ impl MarketDataStream {
     where
         T: traits::ToUid,
     {
-        let default_instrument = tit::OrderBookInstrument {
-            depth: depth as i32,
-            ..Default::default()
-        };
-
-        let instruments = instruments
-            .iter()
-            .map(|x| {
-                let mut instrument = default_instrument.clone();
-                instrument.instrument_id = x.to_uid().into();
-                instrument
-            })
-            .collect();
-
         let mut subscribe_request = tit::SubscribeOrderBookRequest::default();
         subscribe_request.set_subscription_action(tit::SubscriptionAction::Unsubscribe);
-        subscribe_request.instruments = instruments;
+        subscribe_request.instruments = instruments
+            .iter()
+            .map(|instrument| tit::OrderBookInstrument {
+                instrument_id: instrument.to_uid().into(),
+                depth: depth as i32,
+                ..Default::default()
+            })
+            .collect();
 
         let payload =
             tit::market_data_request::Payload::SubscribeOrderBookRequest(subscribe_request);
