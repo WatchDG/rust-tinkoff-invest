@@ -1,6 +1,5 @@
 use std::error::Error;
 use tinkoff_invest_types as tit;
-use tinkoff_invest_types::market_data_stream_service_client::MarketDataStreamServiceClient;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::task::JoinHandle;
@@ -47,20 +46,46 @@ where
         } else {
             return Err(TinkoffInvestError::ChannelNotSet.into());
         };
+
         let interceptor = self
             .interceptor
             .ok_or(TinkoffInvestError::InterceptorNotSet)?;
-        let mut client = MarketDataStreamServiceClient::with_interceptor(channel, interceptor);
+
+        let mut client =
+            tit::market_data_stream_service_client::MarketDataStreamServiceClient::with_interceptor(
+                channel,
+                interceptor,
+            );
+
+        // Создаем unbounded канал для отправки запросов подписки/отписки в поток рыночных данных.
+        // Unbounded канал используется потому что:
+        // 1. Запросы подписки не должны блокировать отправителя
+        // 2. Количество запросов подписки обычно небольшое и контролируемое
+        // 3. Это позволяет асинхронно отправлять команды управления потоком
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<tit::MarketDataRequest>();
+
+        // Преобразуем receiver в Stream для использования с gRPC клиентом.
+        // UnboundedReceiverStream адаптирует tokio::sync::mpsc::UnboundedReceiver
+        // к интерфейсу Stream, который ожидает gRPC клиент для bidirectional streaming.
+        // Это позволяет отправлять запросы подписки через gRPC поток.
         let receiver_stream = UnboundedReceiverStream::new(receiver);
+
+        // Создаем broadcast канал для передачи рыночных данных множественным подписчикам.
+        // Broadcast канал позволяет одному отправителю передавать сообщения нескольким получателям.
+        // Это необходимо, так как один поток рыночных данных может обслуживать несколько
+        // потребителей данных (например, разные части приложения могут подписываться на
+        // одни и те же инструменты для разных целей).
         let (broadcast_sender, _broadcast_receiver) = broadcast::channel(self.messages_capacity);
+
         let task_broadcast_sender = broadcast_sender.clone();
+
         let task = tokio::spawn(async move {
             let mut streaming = client
                 .market_data_stream(receiver_stream)
                 .await
                 .unwrap()
                 .into_inner();
+
             while let Some(message) = streaming.message().await.unwrap() {
                 if let Some(payload) = message.payload {
                     let data = match payload {
@@ -72,17 +97,20 @@ where
                         }
                         _ => None,
                     };
+
                     if let Some(market_data) = data {
                         task_broadcast_sender.send(market_data).unwrap();
                     }
                 }
             }
         });
+
         let market_data_stream = MarketDataStream {
             sender,
             task,
             broadcast_sender,
         };
+
         Ok(market_data_stream)
     }
 }
@@ -125,6 +153,7 @@ impl MarketDataStream {
         &mut self,
         instruments: &[T],
         interval: &enums::CandlestickInterval,
+        is_raw: Option<bool>,
     ) -> Result<(), Box<dyn Error>>
     where
         T: traits::ToUid,
@@ -144,7 +173,7 @@ impl MarketDataStream {
         let mut subscribe_request = tit::SubscribeCandlesRequest::default();
         subscribe_request.set_subscription_action(tit::SubscriptionAction::Subscribe);
         subscribe_request.instruments = instruments;
-        subscribe_request.waiting_close = true;
+        subscribe_request.waiting_close = is_raw.unwrap_or(false);
 
         let payload = tit::market_data_request::Payload::SubscribeCandlesRequest(subscribe_request);
 
