@@ -37,7 +37,7 @@ impl From<tit::Candle> for Candlestick {
     fn from(value: tit::Candle) -> Self {
         let interval = value.interval().into();
         Self {
-            uid: None,
+            uid: Some(value.instrument_uid.as_str().into()),
             figi: Some(value.figi.into()),
             interval: Some(interval),
             open: value.open.map(|x| x.into()),

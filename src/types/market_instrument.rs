@@ -14,7 +14,7 @@ pub struct MarketInstrument {
     pub lot_size: u64,
     pub currency: enums::Currency,
     pub min_price_increment: Option<types::MoneyValue>,
-    pub trading_status: enums::TradingStatus,
+    pub trading_status: types::TradingStatus,
     pub risk_rate_long: Option<types::MoneyValue>,
     pub risk_rate_short: Option<types::MoneyValue>,
     pub future_asset: Option<String>,
@@ -29,7 +29,12 @@ pub struct MarketInstrument {
 
 impl From<tit::Currency> for MarketInstrument {
     fn from(value: tit::Currency) -> Self {
-        let trading_status = value.trading_status().into();
+        let trading_status = types::TradingStatus::new(
+            value.uid.as_str().into(),
+            value.trading_status().into(),
+            None,
+        );
+
         Self {
             uid: value.uid.as_str().into(),
             figi: Some(value.figi.into()),
@@ -58,7 +63,12 @@ impl From<tit::Currency> for MarketInstrument {
 
 impl From<tit::Share> for MarketInstrument {
     fn from(value: tit::Share) -> Self {
-        let trading_status = value.trading_status().into();
+        let trading_status = types::TradingStatus::new(
+            value.uid.as_str().into(),
+            value.trading_status().into(),
+            None,
+        );
+
         // let risk_rate_long = if let Some(klong) = value.klong {
         //     match klong.units {
         //         2 => value.dlong.map(|x| x.into()),
@@ -105,7 +115,12 @@ impl From<tit::Share> for MarketInstrument {
 
 impl From<tit::Future> for MarketInstrument {
     fn from(value: tit::Future) -> Self {
-        let trading_status = value.trading_status().into();
+        let trading_status = types::TradingStatus::new(
+            value.uid.as_str().into(),
+            value.trading_status().into(),
+            None,
+        );
+
         // let risk_rate_long = if let Some(klong) = value.klong {
         //     match klong.units {
         //         2 => value.dlong.map(|x| x.into()),
@@ -152,7 +167,12 @@ impl From<tit::Future> for MarketInstrument {
 
 impl From<tit::Option> for MarketInstrument {
     fn from(value: tit::Option) -> Self {
-        let trading_status = value.trading_status().into();
+        let trading_status = types::TradingStatus::new(
+            value.uid.as_str().into(),
+            value.trading_status().into(),
+            None,
+        );
+
         Self {
             uid: value.uid.as_str().into(),
             figi: None,

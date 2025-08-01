@@ -14,6 +14,7 @@ mod portfolio;
 mod positions;
 mod ticker;
 mod trade;
+mod trading_status;
 mod uid;
 
 pub use account::{Account, AccountId};
@@ -32,4 +33,5 @@ pub use portfolio::PortfolioPosition;
 pub use positions::Positions;
 pub use ticker::Ticker;
 pub use trade::Trade;
+pub use trading_status::TradingStatus;
 pub use uid::Uid;
