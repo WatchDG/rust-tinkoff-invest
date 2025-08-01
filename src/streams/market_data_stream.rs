@@ -8,7 +8,73 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::transport::Endpoint;
 use tonic::{service::Interceptor, transport::Channel};
 
-use crate::{TinkoffInvest, TinkoffInvestError, enums, traits};
+use crate::{TinkoffInvest, TinkoffInvestError, enums, traits, types};
+
+/// Подписчик на рыночные данные
+/// 
+/// Предоставляет удобный интерфейс для получения обновлений рыночных данных
+/// из потока MarketDataStream. Поддерживает получение свечей и стаканов.
+pub struct MarketDataSubscriber {
+    receiver: broadcast::Receiver<enums::MarketDataStreamData>,
+}
+
+impl MarketDataSubscriber {
+    /// Создает нового подписчика из broadcast receiver
+    pub fn new(receiver: broadcast::Receiver<enums::MarketDataStreamData>) -> Self {
+        Self { receiver }
+    }
+
+    /// Получает следующее сообщение из потока рыночных данных
+    /// 
+    /// Возвращает `Ok(Some(data))` если получено сообщение,
+    /// `Ok(None)` если поток закрыт, или `Err` при ошибке.
+    pub async fn recv(&mut self) -> Result<Option<enums::MarketDataStreamData>, broadcast::error::RecvError> {
+        match self.receiver.recv().await {
+            Ok(data) => Ok(Some(data)),
+            Err(broadcast::error::RecvError::Closed) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Получает только свечи из потока данных
+    /// 
+    /// Фильтрует сообщения и возвращает только данные свечей.
+    /// Возвращает `Ok(Some(candlestick))` если получена свеча,
+    /// `Ok(None)` если поток закрыт, или `Err` при ошибке.
+    pub async fn recv_candlestick(&mut self) -> Result<Option<types::Candlestick>, broadcast::error::RecvError> {
+        loop {
+            match self.recv().await? {
+                Some(enums::MarketDataStreamData::Candlestick(candlestick)) => {
+                    return Ok(Some(candlestick));
+                }
+                Some(_) => continue, // Пропускаем другие типы данных
+                None => return Ok(None), // Поток закрыт
+            }
+        }
+    }
+
+    /// Получает только стаканы из потока данных
+    ///
+    /// Фильтрует сообщения и возвращает только данные стаканов.
+    /// Возвращает `Ok(Some(orderbook))` если получен стакан,
+    /// `Ok(None)` если поток закрыт, или `Err` при ошибке.
+    pub async fn recv_orderbook(&mut self) -> Result<Option<types::OrderBook>, broadcast::error::RecvError> {
+        loop {
+            match self.recv().await? {
+                Some(enums::MarketDataStreamData::Orderbook(orderbook)) => {
+                    return Ok(Some(orderbook));
+                }
+                Some(_) => continue, // Пропускаем другие типы данных
+                None => return Ok(None), // Поток закрыт
+            }
+        }
+    }
+
+    /// Проверяет, закрыт ли поток данных
+    pub fn is_closed(&self) -> bool {
+        self.receiver.is_closed()
+    }
+}
 
 pub struct MarketDataStreamBuilder<I>
 where
@@ -145,8 +211,12 @@ pub struct MarketDataStream {
 }
 
 impl MarketDataStream {
-    pub fn subscribe(&self) -> broadcast::Receiver<enums::MarketDataStreamData> {
-        self.broadcast_sender.subscribe()
+    /// Создает нового подписчика на рыночные данные
+    /// 
+    /// Возвращает `MarketDataSubscriber`, который предоставляет удобный интерфейс
+    /// для получения обновлений рыночных данных из нескольких потоков.
+    pub fn subscribe(&self) -> MarketDataSubscriber {
+        MarketDataSubscriber::new(self.broadcast_sender.subscribe())
     }
 
     pub async fn subscribe_candlesticks<T>(
