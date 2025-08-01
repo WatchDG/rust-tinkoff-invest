@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use crate::{enums, traits, types};
+use crate::{traits, types};
 
 /// Потокобезопасный кэш рыночных инструментов с множественными индексами для быстрого поиска.
 ///
@@ -18,7 +18,7 @@ pub struct CachedMarketInstruments {
     hash_map_by_figi: Arc<RwLock<HashMap<Option<types::Figi>, Vec<types::MarketInstrument>>>>,
     hash_map_by_ticker: Arc<RwLock<HashMap<types::Ticker, Vec<types::MarketInstrument>>>>,
     hash_map_by_class_code_ticker:
-        Arc<RwLock<HashMap<(enums::ClassCode, types::Ticker), Vec<types::MarketInstrument>>>>,
+        Arc<RwLock<HashMap<types::ClassCodeTicker, Vec<types::MarketInstrument>>>>,
 }
 
 impl CachedMarketInstruments {
