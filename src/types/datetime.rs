@@ -72,3 +72,9 @@ impl DateTime {
         chrono::Utc::now().naive_utc().into()
     }
 }
+
+impl Default for DateTime {
+    fn default() -> Self {
+        Self::now()
+    }
+}
