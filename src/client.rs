@@ -238,7 +238,7 @@ where
             .ok_or(TinkoffInvestError::UsersServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let message = GetAccountsRequest {
             ..Default::default()
         };
@@ -286,7 +286,7 @@ where
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request_with_context(message, &ctx);
@@ -316,7 +316,7 @@ where
         message.set_id_type(InstrumentIdType::Figi);
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let share = client.share_by(request).await?.into_inner().instrument;
         Ok(share.as_ref().map(|x| x.clone().into()))
@@ -334,7 +334,7 @@ where
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let currencies = client.currencies(request).await?.into_inner().instruments;
         Ok(currencies.into_iter().map(|v| v.into()).collect())
@@ -362,7 +362,7 @@ where
         message.set_id_type(InstrumentIdType::Figi);
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let currency = client.currency_by(request).await?.into_inner().instrument;
         Ok(currency.as_ref().map(|x| x.clone().into()))
@@ -380,7 +380,7 @@ where
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let futures = client.futures(request).await?.into_inner().instruments;
         Ok(futures.into_iter().map(|v| v.into()).collect())
@@ -408,7 +408,7 @@ where
         message.set_id_type(InstrumentIdType::Figi);
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let future = client.future_by(request).await?.into_inner().instrument;
         Ok(future.as_ref().map(|x| x.clone().into()))
@@ -466,7 +466,7 @@ where
         };
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         Ok(client
             .get_trading_status(request)
@@ -501,7 +501,7 @@ where
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
         Ok(candlesticks
@@ -535,7 +535,7 @@ where
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
@@ -560,7 +560,7 @@ where
         };
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
@@ -609,7 +609,7 @@ where
         message.set_state(state.into());
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let operations = client
             .get_operations(request)
@@ -658,7 +658,7 @@ where
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let portfolio_positions = client
             .get_portfolio(request)
@@ -700,7 +700,7 @@ where
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         let response = client.get_positions(request).await?;
         let positions = response.into_inner().into();
@@ -751,7 +751,7 @@ where
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         Ok(client.post_order(request).await?.into_inner().into())
     }
@@ -802,7 +802,7 @@ where
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let ctx = ctx
             .map(|c| c.clone())
-            .unwrap_or_else(|| TinkoffInvestCallContext::new(None));
+            .unwrap_or_else(|| TinkoffInvestCallContext::new(None, None));
         let request = Self::create_request_with_context(message, &ctx);
         Ok(client
             .cancel_order(request)
