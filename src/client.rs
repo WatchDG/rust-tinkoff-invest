@@ -156,7 +156,6 @@ where
             None
         };
         Ok(TinkoffInvest {
-            account: None,
             endpoint: self.endpoint,
             channel,
             interceptor,
@@ -182,7 +181,6 @@ pub struct TinkoffInvest<I>
 where
     I: Interceptor,
 {
-    account: Option<types::Account>,
     pub(crate) endpoint: Endpoint,
     pub(crate) channel: Channel,
     pub(crate) interceptor: I,
@@ -211,12 +209,6 @@ impl<I> TinkoffInvest<I>
 where
     I: Interceptor,
 {
-    #[inline]
-    pub fn set_account(&mut self, account: Option<types::Account>) -> &Self {
-        self.account = account;
-        self
-    }
-
     /// Создает Request с установленным x-tracking-id из TinkoffInvestCallContext
     fn create_request_with_context<T>(
         message: T,
