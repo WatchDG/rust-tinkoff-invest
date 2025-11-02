@@ -27,7 +27,7 @@ pub struct TinkoffInvestBuilder<I>
 where
     I: Interceptor + Clone,
 {
-    endpoint: Endpoint,
+    endpoint: Option<Endpoint>,
     interceptor: Option<I>,
     enable_users_service_client: bool,
     enable_instruments_service_client: bool,
@@ -42,12 +42,8 @@ where
 {
     #[inline]
     pub fn new() -> Self {
-        let endpoint = Channel::from_static("https://invest-public-api.tinkoff.ru")
-            .tls_config(ClientTlsConfig::new().with_native_roots())
-            .unwrap()
-            .timeout(Duration::from_millis(10000));
         Self {
-            endpoint,
+            endpoint: None,
             interceptor: None,
             enable_users_service_client: false,
             enable_instruments_service_client: false,
@@ -58,7 +54,7 @@ where
     }
 
     #[inline]
-    pub fn endpoint(&mut self, endpoint: Endpoint) -> &Self {
+    pub fn endpoint(&mut self, endpoint: Option<Endpoint>) -> &Self {
         self.endpoint = endpoint;
         self
     }
@@ -101,7 +97,13 @@ where
 
     #[inline]
     pub async fn build(self) -> Result<TinkoffInvest<I>, Box<dyn Error>> {
-        let channel = self.endpoint.clone().connect().await?;
+        let endpoint = self.endpoint.unwrap_or_else(|| {
+            Channel::from_static("https://invest-public-api.tinkoff.ru")
+                .tls_config(ClientTlsConfig::new().with_native_roots())
+                .unwrap()
+                .timeout(Duration::from_millis(10000))
+        });
+        let channel = endpoint.connect().await?;
         let interceptor = self
             .interceptor
             .ok_or(TinkoffInvestError::InterceptorNotSet)?;
@@ -156,7 +158,7 @@ where
             None
         };
         Ok(TinkoffInvest {
-            endpoint: self.endpoint,
+            endpoint,
             channel,
             interceptor,
             users_service_client,
