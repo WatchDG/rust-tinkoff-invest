@@ -644,16 +644,12 @@ where
         self.portfolio_on_account(ctx, &account).await
     }
 
-    pub async fn positions_on_account<T>(
+    pub async fn positions(
         &mut self,
         ctx: &TinkoffInvestCallContext,
-        account: T,
-    ) -> Result<types::Positions, Box<dyn Error>>
-    where
-        T: traits::ToAccountId,
-    {
+    ) -> Result<types::Positions, Box<dyn Error>> {
         let message = PositionsRequest {
-            account_id: account.to_account_id().into(),
+            account_id: ctx.to_account_id().into(),
         };
         let client = self
             .operations_service_client
@@ -665,17 +661,6 @@ where
         Ok(positions)
     }
 
-    pub async fn positions(
-        &mut self,
-        ctx: &TinkoffInvestCallContext,
-    ) -> Result<types::Positions, Box<dyn Error>> {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.positions_on_account(ctx, &account).await
-    }
 
     #[inline]
     pub async fn limit_order(
