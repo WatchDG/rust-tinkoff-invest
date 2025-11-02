@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::time::Duration;
-use uuid::Uuid;
 
 use crate::traits::{ToAccountId, ToOrderId};
 use crate::{
@@ -679,24 +678,17 @@ where
     }
 
     #[inline]
-    pub async fn limit_order_on_account<T, K>(
+    pub async fn limit_order(
         &mut self,
         ctx: &TinkoffInvestCallContext,
-        account: T,
-        instrument: K,
+        instrument: impl traits::ToUid,
         direction: enums::OrderDirection,
         quantity: u64,
         price: types::MoneyValue,
-        order_id: Option<String>,
-    ) -> Result<types::Order, Box<dyn Error>>
-    where
-        T: traits::ToAccountId,
-        K: traits::ToUid,
-    {
-        let order_id = order_id.unwrap_or_else(|| Uuid::now_v7().to_string());
+    ) -> Result<types::Order, Box<dyn Error>> {
         let mut message = PostOrderRequest {
-            order_id,
-            account_id: account.to_account_id().into(),
+            order_id: ctx.to_order_id().into(),
+            account_id: ctx.to_account_id().into(),
             instrument_id: instrument.to_uid().into(),
             quantity: quantity as i64,
             price: Some(price.into()),
@@ -710,29 +702,6 @@ where
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
         Ok(client.post_order(request).await?.into_inner().into())
-    }
-
-    pub async fn limit_order<T>(
-        &mut self,
-        ctx: &TinkoffInvestCallContext,
-        instrument: T,
-        direction: enums::OrderDirection,
-        quantity: u64,
-        price: types::MoneyValue,
-        order_id: Option<String>,
-    ) -> Result<types::Order, Box<dyn Error>>
-    where
-        T: traits::ToUid,
-    {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.limit_order_on_account(
-            ctx, &account, instrument, direction, quantity, price, order_id,
-        )
-        .await
     }
 
     #[inline]
