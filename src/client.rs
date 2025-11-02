@@ -225,8 +225,7 @@ where
         let mut request = TonicRequest::new(message);
         let request_id = ctx
             .request_id
-            .as_ref()
-            .map(|id| id.clone())
+            .clone()
             .unwrap_or_else(|| Uuid::now_v7().to_string());
         request
             .metadata_mut()
