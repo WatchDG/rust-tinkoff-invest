@@ -560,11 +560,8 @@ where
         };
         message.set_state(state.into());
         let request = Self::create_request_with_context(message, ctx);
-        let operations = client
-            .get_operations(request)
-            .await?
-            .into_inner()
-            .operations;
+        let response = client.get_operations(request).await?;
+        let operations = response.into_inner().operations;
         Ok(operations.into_iter().map(|x| x.into()).collect())
     }
 
@@ -634,7 +631,9 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
-        Ok(client.post_order(request).await?.into_inner().into())
+        let response = client.post_order(request).await?;
+        let order = response.into_inner().into();
+        Ok(order)
     }
 
     #[inline]
@@ -653,11 +652,7 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
-        Ok(client
-            .cancel_order(request)
-            .await?
-            .into_inner()
-            .time
-            .map(|x| x.into()))
+        let response = client.cancel_order(request).await?;
+        Ok(response.into_inner().time.map(|x| x.into()))
     }
 }
