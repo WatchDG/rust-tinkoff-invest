@@ -3,7 +3,6 @@ use tonic::{
     metadata::{Ascii, MetadataValue},
     service::Interceptor,
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct TinkoffInvestInterceptor {
@@ -23,8 +22,6 @@ impl Interceptor for TinkoffInvestInterceptor {
         let mut req = request;
         req.metadata_mut()
             .append("authorization", self.authorization.clone());
-        req.metadata_mut()
-            .append("x-tracking-id", Uuid::now_v7().to_string().parse().unwrap());
         Ok(req)
     }
 }
