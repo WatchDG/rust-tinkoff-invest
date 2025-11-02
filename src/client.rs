@@ -603,16 +603,12 @@ where
             .await
     }
 
-    pub async fn portfolio_on_account<T>(
+    pub async fn portfolio(
         &mut self,
         ctx: &TinkoffInvestCallContext,
-        account: T,
-    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>>
-    where
-        T: traits::ToAccountId,
-    {
+    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
         let mut message = PortfolioRequest {
-            account_id: account.to_account_id().into(),
+            account_id: ctx.to_account_id().into(),
             ..Default::default()
         };
         message.set_currency(CurrencyRequest::Rub);
@@ -632,18 +628,6 @@ where
         Ok(portfolio_positions)
     }
 
-    pub async fn portfolio(
-        &mut self,
-        ctx: &TinkoffInvestCallContext,
-    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.portfolio_on_account(ctx, &account).await
-    }
-
     pub async fn positions(
         &mut self,
         ctx: &TinkoffInvestCallContext,
@@ -660,7 +644,6 @@ where
         let positions = response.into_inner().into();
         Ok(positions)
     }
-
 
     #[inline]
     pub async fn limit_order(
