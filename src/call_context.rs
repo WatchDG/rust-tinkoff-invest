@@ -21,6 +21,12 @@ impl TinkoffInvestCallContext {
         }
     }
 
+    /// Устанавливает request_id
+    pub fn set_request_id(&mut self, request_id: Option<String>) -> &mut Self {
+        self.request_id = request_id;
+        self
+    }
+
     /// Устанавливает account_id из типа, реализующего ToAccountId
     pub fn set_account_id<T>(&mut self, account: Option<T>) -> &mut Self
     where
