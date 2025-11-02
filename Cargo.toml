@@ -21,5 +21,5 @@ tonic = { version = "0.14", features = ["tls-ring", "tls-native-roots", "gzip"] 
 tinkoff-invest-types = { version = "2.22" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 tokio-stream = { version = "0.1" }
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v7"] }
 chrono = { version = "0.4" }

@@ -630,7 +630,7 @@ where
         T: traits::ToAccountId,
         K: traits::ToUid,
     {
-        let order_id = order_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+        let order_id = order_id.unwrap_or_else(|| Uuid::now_v7().to_string());
         let mut request = PostOrderRequest {
             order_id,
             account_id: account.to_account_id().into(),

@@ -24,7 +24,7 @@ impl Interceptor for TinkoffInvestInterceptor {
         req.metadata_mut()
             .append("authorization", self.authorization.clone());
         req.metadata_mut()
-            .append("x-tracking-id", Uuid::new_v4().to_string().parse().unwrap());
+            .append("x-tracking-id", Uuid::now_v7().to_string().parse().unwrap());
         Ok(req)
     }
 }
