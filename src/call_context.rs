@@ -9,14 +9,17 @@ pub struct TinkoffInvestCallContext {
     pub request_id: String,
     /// Идентификатор аккаунта (опционально)
     pub account_id: Option<types::AccountId>,
+    /// Идентификатор ордера (опционально)
+    pub order_id: Option<types::OrderId>,
 }
 
 impl TinkoffInvestCallContext {
     /// Создает новый контекст с заданным request_id или автоматически генерирует его
-    pub fn new(request_id: Option<String>, account_id: Option<types::AccountId>) -> Self {
+    pub fn new(request_id: Option<String>) -> Self {
         Self {
             request_id: request_id.unwrap_or_else(|| Uuid::now_v7().to_string()),
-            account_id,
+            account_id: None,
+            order_id: None,
         }
     }
 
@@ -28,6 +31,15 @@ impl TinkoffInvestCallContext {
         self.account_id = account.map(|a| a.to_account_id());
         self
     }
+
+    /// Устанавливает order_id из типа, реализующего ToOrderId
+    pub fn set_order_id<T>(&mut self, order: Option<T>) -> &mut Self
+    where
+        T: traits::ToOrderId,
+    {
+        self.order_id = order.map(|o| o.to_order_id());
+        self
+    }
 }
 
 impl traits::ToAccountId for TinkoffInvestCallContext {
@@ -35,5 +47,13 @@ impl traits::ToAccountId for TinkoffInvestCallContext {
         self.account_id
             .clone()
             .expect("account_id must be set in TinkoffInvestCallContext to use ToAccountId")
+    }
+}
+
+impl traits::ToOrderId for TinkoffInvestCallContext {
+    fn to_order_id(&self) -> types::OrderId {
+        self.order_id
+            .clone()
+            .expect("order_id must be set in TinkoffInvestCallContext to use ToOrderId")
     }
 }
