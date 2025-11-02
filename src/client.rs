@@ -547,17 +547,15 @@ where
     }
 
     #[inline]
-    pub async fn operations_on_account<T, K>(
+    pub async fn operations<K>(
         &mut self,
         ctx: &TinkoffInvestCallContext,
-        account: T,
         instrument: K,
         state: enums::OperationState,
         from: types::DateTime,
         to: types::DateTime,
     ) -> Result<Vec<types::Operation>, Box<dyn Error>>
     where
-        T: traits::ToAccountId,
         K: traits::ToFigi,
     {
         let from = Some(from.into());
@@ -567,7 +565,7 @@ where
             .as_mut()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let mut message = OperationsRequest {
-            account_id: account.to_account_id().into(),
+            account_id: ctx.to_account_id().into(),
             figi: Some(instrument.to_figi().into()),
             state: Some(0),
             from,
@@ -581,26 +579,6 @@ where
             .into_inner()
             .operations;
         Ok(operations.into_iter().map(|x| x.into()).collect())
-    }
-
-    pub async fn operations<T>(
-        &mut self,
-        ctx: &TinkoffInvestCallContext,
-        instrument: T,
-        state: enums::OperationState,
-        from: types::DateTime,
-        to: types::DateTime,
-    ) -> Result<Vec<types::Operation>, Box<dyn Error>>
-    where
-        T: traits::ToFigi,
-    {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.operations_on_account(ctx, &account, instrument, state, from, to)
-            .await
     }
 
     pub async fn portfolio(
