@@ -516,40 +516,22 @@ where
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
-    pub async fn order_on_account<T>(
+    pub async fn order(
         &mut self,
         ctx: &TinkoffInvestCallContext,
-        account: T,
-        order_id: types::OrderId,
-    ) -> Result<types::Order, Box<dyn Error>>
-    where
-        T: traits::ToAccountId,
-    {
+    ) -> Result<types::Order, Box<dyn Error>> {
         let client = self
             .orders_service_client
             .as_mut()
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let message = tinkoff_invest_types::GetOrderStateRequest {
-            account_id: account.to_account_id().into(),
-            order_id: order_id.into(),
+            account_id: ctx.to_account_id().into(),
+            order_id: ctx.to_order_id().into(),
             ..Default::default()
         };
         let request = Self::create_request_with_context(message, ctx);
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
-    }
-
-    pub async fn order<T>(
-        &mut self,
-        ctx: &TinkoffInvestCallContext,
-        order_id: types::OrderId,
-    ) -> Result<types::Order, Box<dyn Error>> {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.order_on_account(ctx, &account, order_id).await
     }
 
     #[inline]
