@@ -1,12 +1,10 @@
-use uuid::Uuid;
-
 use crate::{traits, types};
 
 /// Контекст вызова, содержащий информацию для идентификации запроса
 #[derive(Debug, Clone)]
 pub struct TinkoffInvestCallContext {
-    /// Идентификатор запроса (x-tracking-id)
-    pub request_id: String,
+    /// Идентификатор запроса (x-tracking-id) (опционально)
+    pub request_id: Option<String>,
     /// Идентификатор аккаунта (опционально)
     pub account_id: Option<types::AccountId>,
     /// Идентификатор ордера (опционально)
@@ -14,10 +12,10 @@ pub struct TinkoffInvestCallContext {
 }
 
 impl TinkoffInvestCallContext {
-    /// Создает новый контекст с заданным request_id или автоматически генерирует его
-    pub fn new(request_id: Option<String>) -> Self {
+    /// Создает новый контекст
+    pub fn new() -> Self {
         Self {
-            request_id: request_id.unwrap_or_else(|| Uuid::now_v7().to_string()),
+            request_id: None,
             account_id: None,
             order_id: None,
         }
