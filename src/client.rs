@@ -54,13 +54,13 @@ where
     }
 
     #[inline]
-    pub fn endpoint(&mut self, endpoint: Option<Endpoint>) -> &Self {
+    pub fn set_endpoint(&mut self, endpoint: Option<Endpoint>) -> &Self {
         self.endpoint = endpoint;
         self
     }
 
     #[inline]
-    pub fn interceptor(&mut self, interceptor: Option<I>) -> &Self {
+    pub fn set_interceptor(&mut self, interceptor: Option<I>) -> &Self {
         self.interceptor = interceptor;
         self
     }
@@ -197,7 +197,7 @@ impl TinkoffInvest<TinkoffInvestInterceptor> {
     pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
         let interceptor = TinkoffInvestInterceptor::new(token);
         let mut builder = TinkoffInvestBuilder::new();
-        builder.interceptor(Some(interceptor));
+        builder.set_interceptor(Some(interceptor));
         builder.enable_users_service_client(true);
         builder.enable_instruments_service_client(true);
         builder.enable_market_data_service_client(true);
