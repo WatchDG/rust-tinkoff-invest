@@ -2,6 +2,7 @@ use std::error::Error;
 use std::time::Duration;
 use uuid::Uuid;
 
+use crate::traits::{ToAccountId, ToOrderId};
 use crate::{
     TinkoffInvestCallContext, TinkoffInvestError, TinkoffInvestInterceptor, enums, traits, types,
 };
@@ -735,19 +736,13 @@ where
     }
 
     #[inline]
-    pub async fn cancel_order_on_account<T, K>(
+    pub async fn cancel_order(
         &mut self,
         ctx: &TinkoffInvestCallContext,
-        account: T,
-        order: K,
-    ) -> Result<Option<types::DateTime>, Box<dyn Error>>
-    where
-        T: traits::ToAccountId,
-        K: traits::ToOrderId,
-    {
+    ) -> Result<Option<types::DateTime>, Box<dyn Error>> {
         let mut message = CancelOrderRequest {
-            account_id: account.to_account_id().into(),
-            order_id: order.to_order_id().into(),
+            account_id: ctx.to_account_id().into(),
+            order_id: ctx.to_order_id().into(),
             ..Default::default()
         };
         message.set_order_id_type(OrderIdType::Exchange);
@@ -762,21 +757,5 @@ where
             .into_inner()
             .time
             .map(|x| x.into()))
-    }
-
-    pub async fn cancel_order<T>(
-        &mut self,
-        ctx: &TinkoffInvestCallContext,
-        order: T,
-    ) -> Result<Option<types::DateTime>, Box<dyn Error>>
-    where
-        T: traits::ToOrderId,
-    {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.cancel_order_on_account(ctx, &account, order).await
     }
 }
