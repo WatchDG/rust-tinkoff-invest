@@ -19,6 +19,15 @@ impl TinkoffInvestCallContext {
             account_id,
         }
     }
+
+    /// Устанавливает account_id из типа, реализующего ToAccountId
+    pub fn set_account_id<T>(&mut self, account: Option<T>) -> &mut Self
+    where
+        T: traits::ToAccountId,
+    {
+        self.account_id = account.map(|a| a.to_account_id());
+        self
+    }
 }
 
 impl traits::ToAccountId for TinkoffInvestCallContext {
