@@ -61,3 +61,9 @@ impl traits::ToOrderId for TinkoffInvestCallContext {
             .expect("order_id must be set in TinkoffInvestCallContext to use ToOrderId")
     }
 }
+
+impl Default for TinkoffInvestCallContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
