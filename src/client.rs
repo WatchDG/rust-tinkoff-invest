@@ -23,6 +23,21 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
+/// Макрос для создания и настройки сервисного клиента
+macro_rules! create_service_client {
+    ($channel:expr, $interceptor:expr, $enabled:expr, $factory:expr, $max_size:expr) => {
+        if $enabled {
+            let mut client = $factory($channel.clone(), $interceptor.clone());
+            client = client.send_compressed(CompressionEncoding::Gzip);
+            client = client.accept_compressed(CompressionEncoding::Gzip);
+            client = client.max_decoding_message_size($max_size);
+            Some(client)
+        } else {
+            None
+        }
+    };
+}
+
 pub struct TinkoffInvestBuilder<I>
 where
     I: Interceptor + Clone,
@@ -40,6 +55,15 @@ impl<I> TinkoffInvestBuilder<I>
 where
     I: Interceptor + Clone,
 {
+    /// URL эндпоинта Tinkoff Invest API по умолчанию
+    const DEFAULT_ENDPOINT: &'static str = "https://invest-public-api.tinkoff.ru";
+
+    /// Таймаут подключения по умолчанию (10 секунд)
+    const DEFAULT_TIMEOUT: Duration = Duration::from_millis(10000);
+
+    /// Максимальный размер декодируемого сообщения (256 MB)
+    const MAX_DECODING_MESSAGE_SIZE: usize = 256 * 1024 * 1024;
+
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -98,65 +122,56 @@ where
     #[inline]
     pub async fn build(self) -> Result<TinkoffInvest<I>, Box<dyn Error>> {
         let endpoint = self.endpoint.unwrap_or_else(|| {
-            Channel::from_static("https://invest-public-api.tinkoff.ru")
+            Channel::from_static(Self::DEFAULT_ENDPOINT)
                 .tls_config(ClientTlsConfig::new().with_native_roots())
                 .unwrap()
-                .timeout(Duration::from_millis(10000))
+                .timeout(Self::DEFAULT_TIMEOUT)
         });
         let channel = endpoint.connect().await?;
         let interceptor = self
             .interceptor
             .ok_or(TinkoffInvestError::InterceptorNotSet)?;
-        let users_service_client = if self.enable_users_service_client {
-            let mut client =
-                UsersServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        let instruments_service_client = if self.enable_instruments_service_client {
-            let mut client =
-                InstrumentsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        let market_data_service_client = if self.enable_market_data_service_client {
-            let mut client =
-                MarketDataServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        let operations_service_client = if self.enable_operations_service_client {
-            let mut client =
-                OperationsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        let orders_service_client = if self.enable_orders_service_client {
-            let mut client =
-                OrdersServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
+
+        let users_service_client = create_service_client!(
+            &channel,
+            &interceptor,
+            self.enable_users_service_client,
+            UsersServiceClient::with_interceptor,
+            Self::MAX_DECODING_MESSAGE_SIZE
+        );
+
+        let instruments_service_client = create_service_client!(
+            &channel,
+            &interceptor,
+            self.enable_instruments_service_client,
+            InstrumentsServiceClient::with_interceptor,
+            Self::MAX_DECODING_MESSAGE_SIZE
+        );
+
+        let market_data_service_client = create_service_client!(
+            &channel,
+            &interceptor,
+            self.enable_market_data_service_client,
+            MarketDataServiceClient::with_interceptor,
+            Self::MAX_DECODING_MESSAGE_SIZE
+        );
+
+        let operations_service_client = create_service_client!(
+            &channel,
+            &interceptor,
+            self.enable_operations_service_client,
+            OperationsServiceClient::with_interceptor,
+            Self::MAX_DECODING_MESSAGE_SIZE
+        );
+
+        let orders_service_client = create_service_client!(
+            &channel,
+            &interceptor,
+            self.enable_orders_service_client,
+            OrdersServiceClient::with_interceptor,
+            Self::MAX_DECODING_MESSAGE_SIZE
+        );
+
         Ok(TinkoffInvest {
             endpoint,
             channel,
