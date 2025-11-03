@@ -260,28 +260,28 @@ impl CachedMarketInstruments {
 
         {
             let mut map = self.hash_map_by_figi.write().unwrap();
-            if let Some(vec) = map.get_mut(&figi) {
-                if let Some(pos) = vec.iter().position(|item| item.uid == uid) {
-                    vec[pos] = market_instrument.clone();
-                }
+            if let Some(vec) = map.get_mut(&figi)
+                && let Some(pos) = vec.iter().position(|item| item.uid == uid)
+            {
+                vec[pos] = market_instrument.clone();
             }
         }
 
         {
             let mut map = self.hash_map_by_ticker.write().unwrap();
-            if let Some(vec) = map.get_mut(&ticker) {
-                if let Some(pos) = vec.iter().position(|item| item.uid == uid) {
-                    vec[pos] = market_instrument.clone();
-                }
+            if let Some(vec) = map.get_mut(&ticker)
+                && let Some(pos) = vec.iter().position(|item| item.uid == uid)
+            {
+                vec[pos] = market_instrument.clone();
             }
         }
 
         {
             let mut map = self.hash_map_by_class_code_ticker.write().unwrap();
-            if let Some(vec) = map.get_mut(&class_code_ticker) {
-                if let Some(pos) = vec.iter().position(|item| item.uid == uid) {
-                    vec[pos] = market_instrument;
-                }
+            if let Some(vec) = map.get_mut(&class_code_ticker)
+                && let Some(pos) = vec.iter().position(|item| item.uid == uid)
+            {
+                vec[pos] = market_instrument;
             }
         }
     }
