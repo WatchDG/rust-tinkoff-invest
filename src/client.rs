@@ -90,9 +90,11 @@ impl TinkoffInvestBuilderFlags {
 }
 
 macro_rules! create_service_client {
-    ($channel:expr, $interceptor:expr, $enabled:expr, $factory:expr, $max_size:expr) => {
+    ($channel:expr, $interceptor:expr, $enabled:expr, $factory:expr, $max_size:expr) => {{
         if $enabled {
-            let mut client = $factory($channel.clone(), $interceptor.clone());
+            let channel_clone = $channel.clone();
+            let interceptor_clone = $interceptor.clone();
+            let mut client = $factory(channel_clone, interceptor_clone);
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
             client = client.max_decoding_message_size($max_size);
@@ -100,7 +102,7 @@ macro_rules! create_service_client {
         } else {
             None
         }
-    };
+    }};
 }
 
 pub struct TinkoffInvestBuilder<I>
