@@ -78,43 +78,43 @@ where
     }
 
     #[inline]
-    pub fn set_endpoint(&mut self, endpoint: Option<Endpoint>) -> &Self {
+    pub fn set_endpoint(mut self, endpoint: Option<Endpoint>) -> Self {
         self.endpoint = endpoint;
         self
     }
 
     #[inline]
-    pub fn set_interceptor(&mut self, interceptor: Option<I>) -> &Self {
+    pub fn set_interceptor(mut self, interceptor: Option<I>) -> Self {
         self.interceptor = interceptor;
         self
     }
 
     #[inline]
-    pub fn enable_users_service_client(&mut self, value: bool) -> &Self {
+    pub fn enable_users_service_client(mut self, value: bool) -> Self {
         self.enable_users_service_client = value;
         self
     }
 
     #[inline]
-    pub fn enable_instruments_service_client(&mut self, value: bool) -> &Self {
+    pub fn enable_instruments_service_client(mut self, value: bool) -> Self {
         self.enable_instruments_service_client = value;
         self
     }
 
     #[inline]
-    pub fn enable_market_data_service_client(&mut self, value: bool) -> &Self {
+    pub fn enable_market_data_service_client(mut self, value: bool) -> Self {
         self.enable_market_data_service_client = value;
         self
     }
 
     #[inline]
-    pub fn enable_operations_service_client(&mut self, value: bool) -> &Self {
+    pub fn enable_operations_service_client(mut self, value: bool) -> Self {
         self.enable_operations_service_client = value;
         self
     }
 
     #[inline]
-    pub fn enable_orders_service_client(&mut self, value: bool) -> &Self {
+    pub fn enable_orders_service_client(mut self, value: bool) -> Self {
         self.enable_orders_service_client = value;
         self
     }
@@ -211,14 +211,15 @@ where
 impl TinkoffInvest<TinkoffInvestInterceptor> {
     pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
         let interceptor = TinkoffInvestInterceptor::new(token);
-        let mut builder = TinkoffInvestBuilder::new();
-        builder.set_interceptor(Some(interceptor));
-        builder.enable_users_service_client(true);
-        builder.enable_instruments_service_client(true);
-        builder.enable_market_data_service_client(true);
-        builder.enable_operations_service_client(true);
-        builder.enable_orders_service_client(true);
-        builder.build().await
+        TinkoffInvestBuilder::new()
+            .set_interceptor(Some(interceptor))
+            .enable_users_service_client(true)
+            .enable_instruments_service_client(true)
+            .enable_market_data_service_client(true)
+            .enable_operations_service_client(true)
+            .enable_orders_service_client(true)
+            .build()
+            .await
     }
 }
 
