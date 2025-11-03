@@ -23,7 +23,72 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
-/// Макрос для создания и настройки сервисного клиента
+/// Флаги для включения сервисных клиентов в TinkoffInvestBuilder
+#[derive(Clone, Copy, Default)]
+pub struct TinkoffInvestBuilderFlags(u8);
+
+impl TinkoffInvestBuilderFlags {
+    const USERS: u8 = 1 << 0;
+    const INSTRUMENTS: u8 = 1 << 1;
+    const MARKET_DATA: u8 = 1 << 2;
+    const OPERATIONS: u8 = 1 << 3;
+    const ORDERS: u8 = 1 << 4;
+
+    #[inline]
+    pub fn new() -> Self {
+        Self(0)
+    }
+
+    #[inline]
+    pub fn enable(&mut self, flag: u8) {
+        self.0 |= flag;
+    }
+
+    #[inline]
+    pub fn disable(&mut self, flag: u8) {
+        self.0 &= !flag;
+    }
+
+    #[inline]
+    pub fn set(&mut self, flag: u8, value: bool) {
+        if value {
+            self.enable(flag);
+        } else {
+            self.disable(flag);
+        }
+    }
+
+    #[inline]
+    pub fn is_enabled(&self, flag: u8) -> bool {
+        (self.0 & flag) != 0
+    }
+
+    #[inline]
+    pub fn users_enabled(&self) -> bool {
+        self.is_enabled(Self::USERS)
+    }
+
+    #[inline]
+    pub fn instruments_enabled(&self) -> bool {
+        self.is_enabled(Self::INSTRUMENTS)
+    }
+
+    #[inline]
+    pub fn market_data_enabled(&self) -> bool {
+        self.is_enabled(Self::MARKET_DATA)
+    }
+
+    #[inline]
+    pub fn operations_enabled(&self) -> bool {
+        self.is_enabled(Self::OPERATIONS)
+    }
+
+    #[inline]
+    pub fn orders_enabled(&self) -> bool {
+        self.is_enabled(Self::ORDERS)
+    }
+}
+
 macro_rules! create_service_client {
     ($channel:expr, $interceptor:expr, $enabled:expr, $factory:expr, $max_size:expr) => {
         if $enabled {
@@ -44,11 +109,7 @@ where
 {
     endpoint: Option<Endpoint>,
     interceptor: Option<I>,
-    enable_users_service_client: bool,
-    enable_instruments_service_client: bool,
-    enable_market_data_service_client: bool,
-    enable_operations_service_client: bool,
-    enable_orders_service_client: bool,
+    flags: TinkoffInvestBuilderFlags,
 }
 
 impl<I> TinkoffInvestBuilder<I>
@@ -69,11 +130,7 @@ where
         Self {
             endpoint: None,
             interceptor: None,
-            enable_users_service_client: false,
-            enable_instruments_service_client: false,
-            enable_market_data_service_client: false,
-            enable_operations_service_client: false,
-            enable_orders_service_client: false,
+            flags: TinkoffInvestBuilderFlags::new(),
         }
     }
 
@@ -91,31 +148,33 @@ where
 
     #[inline]
     pub fn enable_users_service_client(mut self, value: bool) -> Self {
-        self.enable_users_service_client = value;
+        self.flags.set(TinkoffInvestBuilderFlags::USERS, value);
         self
     }
 
     #[inline]
     pub fn enable_instruments_service_client(mut self, value: bool) -> Self {
-        self.enable_instruments_service_client = value;
+        self.flags
+            .set(TinkoffInvestBuilderFlags::INSTRUMENTS, value);
         self
     }
 
     #[inline]
     pub fn enable_market_data_service_client(mut self, value: bool) -> Self {
-        self.enable_market_data_service_client = value;
+        self.flags
+            .set(TinkoffInvestBuilderFlags::MARKET_DATA, value);
         self
     }
 
     #[inline]
     pub fn enable_operations_service_client(mut self, value: bool) -> Self {
-        self.enable_operations_service_client = value;
+        self.flags.set(TinkoffInvestBuilderFlags::OPERATIONS, value);
         self
     }
 
     #[inline]
     pub fn enable_orders_service_client(mut self, value: bool) -> Self {
-        self.enable_orders_service_client = value;
+        self.flags.set(TinkoffInvestBuilderFlags::ORDERS, value);
         self
     }
 
@@ -135,7 +194,7 @@ where
         let users_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.enable_users_service_client,
+            self.flags.users_enabled(),
             UsersServiceClient::with_interceptor,
             Self::MAX_DECODING_MESSAGE_SIZE
         );
@@ -143,7 +202,7 @@ where
         let instruments_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.enable_instruments_service_client,
+            self.flags.instruments_enabled(),
             InstrumentsServiceClient::with_interceptor,
             Self::MAX_DECODING_MESSAGE_SIZE
         );
@@ -151,7 +210,7 @@ where
         let market_data_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.enable_market_data_service_client,
+            self.flags.market_data_enabled(),
             MarketDataServiceClient::with_interceptor,
             Self::MAX_DECODING_MESSAGE_SIZE
         );
@@ -159,7 +218,7 @@ where
         let operations_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.enable_operations_service_client,
+            self.flags.operations_enabled(),
             OperationsServiceClient::with_interceptor,
             Self::MAX_DECODING_MESSAGE_SIZE
         );
@@ -167,7 +226,7 @@ where
         let orders_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.enable_orders_service_client,
+            self.flags.orders_enabled(),
             OrdersServiceClient::with_interceptor,
             Self::MAX_DECODING_MESSAGE_SIZE
         );
