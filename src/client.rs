@@ -321,7 +321,6 @@ where
             enums::InstrumentType::Share => self.shares(ctx).await,
             enums::InstrumentType::Currency => self.currencies(ctx).await,
             enums::InstrumentType::Future => self.futures(ctx).await,
-            // enums::InstrumentType::Option => self.options(ctx).await,
         }
     }
 
@@ -337,7 +336,6 @@ where
             enums::InstrumentType::Share => self.share(ctx, instrument).await,
             enums::InstrumentType::Currency => self.currency(ctx, instrument).await,
             enums::InstrumentType::Future => self.future(ctx, instrument).await,
-            // enums::InstrumentType::Option => self.option(ctx, instrument).await,
         }
     }
 
@@ -466,40 +464,6 @@ where
         let future = client.future_by(request).await?.into_inner().instrument;
         Ok(future.map(|x| x.into()))
     }
-
-    // pub async fn options(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
-    //     let client = self
-    //         .instruments_service_client
-    //         .as_mut()
-    //         .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-    //     let mut request = InstrumentsRequest::default();
-    //     request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-    //     let futures = client.options(request).await?.into_inner().instruments;
-    //     Ok(futures.into_iter().map(|v| v.into()).collect())
-    // }
-
-    // pub async fn option<T>(
-    //     &mut self,
-    //     instrument: T,
-    // ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
-    // where
-    //     T: traits::ToInstrumentType + traits::ToFigi,
-    // {
-    //     if instrument.to_instrument_type() != enums::InstrumentType::Future {
-    //         return Err(TinkoffInvestError::MarketInstrumentTypeNotFuture.into());
-    //     }
-    //     let client = self
-    //         .instruments_service_client
-    //         .as_mut()
-    //         .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-    //     let mut request = InstrumentRequest {
-    //         id: instrument.to_figi().into(),
-    //         ..Default::default()
-    //     };
-    //     request.set_id_type(InstrumentIdType::Figi);
-    //     let future = client.option_by(request).await?.into_inner().instrument;
-    //     Ok(future.as_ref().map(|x| x.clone().into()))
-    // }
 
     pub async fn trading_status<T>(
         &self,
