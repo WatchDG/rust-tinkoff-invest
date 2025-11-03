@@ -217,13 +217,14 @@ where
         ctx: &TinkoffInvestCallContext,
     ) -> TonicRequest<T> {
         let mut request = TonicRequest::new(message);
-        let request_id = ctx
+        let request_id_string = ctx
             .request_id
-            .clone()
+            .as_deref()
+            .map(|s| s.to_string())
             .unwrap_or_else(|| Uuid::now_v7().to_string());
         request
             .metadata_mut()
-            .insert("x-tracking-id", request_id.parse().unwrap());
+            .insert("x-tracking-id", request_id_string.parse().unwrap());
         request
     }
 
@@ -240,7 +241,7 @@ where
         };
         let request = Self::create_request_with_context(message, ctx);
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
-        Ok(accounts.iter().map(|v| v.clone().into()).collect())
+        Ok(accounts.into_iter().map(|v| v.into()).collect())
     }
 
     pub async fn market_instruments(
@@ -309,7 +310,7 @@ where
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request_with_context(message, ctx);
         let share = client.share_by(request).await?.into_inner().instrument;
-        Ok(share.as_ref().map(|x| x.clone().into()))
+        Ok(share.map(|x| x.into()))
     }
 
     pub async fn currencies(
@@ -349,7 +350,7 @@ where
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request_with_context(message, ctx);
         let currency = client.currency_by(request).await?.into_inner().instrument;
-        Ok(currency.as_ref().map(|x| x.clone().into()))
+        Ok(currency.map(|x| x.into()))
     }
 
     pub async fn futures(
@@ -389,7 +390,7 @@ where
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request_with_context(message, ctx);
         let future = client.future_by(request).await?.into_inner().instrument;
-        Ok(future.as_ref().map(|x| x.clone().into()))
+        Ok(future.map(|x| x.into()))
     }
 
     // pub async fn options(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
@@ -463,13 +464,15 @@ where
         T: traits::ToUid,
     {
         let uid = instrument.to_uid();
+        let uid_clone = uid.clone();
+        let interval_clone = interval.clone();
         let mut message = GetCandlesRequest {
-            instrument_id: Some(uid.clone().into()),
+            instrument_id: Some(uid.into()),
             from: Some(from.into()),
             to: Some(to.into()),
             ..Default::default()
         };
-        message.set_interval(interval.clone().into());
+        message.set_interval(interval_clone.clone().into());
         let client = self
             .market_data_service_client
             .as_mut()
@@ -480,8 +483,8 @@ where
             .into_iter()
             .map(|x| {
                 let mut candlestick = types::Candlestick::from(x);
-                candlestick.uid = Some(uid.clone());
-                candlestick.interval = Some(interval.clone());
+                candlestick.uid = Some(uid_clone.clone());
+                candlestick.interval = Some(interval_clone.clone());
                 candlestick
             })
             .collect())
