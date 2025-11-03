@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -84,7 +85,7 @@ macro_rules! create_service_client {
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
             client = client.max_decoding_message_size($max_size);
-            Some(client)
+            Some(Arc::new(Mutex::new(client)))
         } else {
             None
         }
@@ -248,11 +249,14 @@ where
     pub(crate) endpoint: Endpoint,
     pub(crate) channel: Channel,
     pub(crate) interceptor: I,
-    users_service_client: Option<UsersServiceClient<InterceptedService<Channel, I>>>,
-    instruments_service_client: Option<InstrumentsServiceClient<InterceptedService<Channel, I>>>,
-    market_data_service_client: Option<MarketDataServiceClient<InterceptedService<Channel, I>>>,
-    operations_service_client: Option<OperationsServiceClient<InterceptedService<Channel, I>>>,
-    orders_service_client: Option<OrdersServiceClient<InterceptedService<Channel, I>>>,
+    users_service_client: Option<Arc<Mutex<UsersServiceClient<InterceptedService<Channel, I>>>>>,
+    instruments_service_client:
+        Option<Arc<Mutex<InstrumentsServiceClient<InterceptedService<Channel, I>>>>>,
+    market_data_service_client:
+        Option<Arc<Mutex<MarketDataServiceClient<InterceptedService<Channel, I>>>>>,
+    operations_service_client:
+        Option<Arc<Mutex<OperationsServiceClient<InterceptedService<Channel, I>>>>>,
+    orders_service_client: Option<Arc<Mutex<OrdersServiceClient<InterceptedService<Channel, I>>>>>,
 }
 
 impl TinkoffInvest<TinkoffInvestInterceptor> {
@@ -292,23 +296,24 @@ where
     }
 
     pub async fn accounts(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<Vec<types::Account>, Box<dyn Error>> {
         let client = self
             .users_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::UsersServiceClientNotInit)?;
         let message = GetAccountsRequest {
             ..Default::default()
         };
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
         Ok(accounts.into_iter().map(|v| v.into()).collect())
     }
 
     pub async fn market_instruments(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument_type: enums::InstrumentType,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
@@ -321,7 +326,7 @@ where
     }
 
     pub async fn market_instrument<T>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
@@ -337,22 +342,23 @@ where
     }
 
     pub async fn shares(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let shares = client.shares(request).await?.into_inner().instruments;
         Ok(shares.into_iter().map(|x| x.into()).collect())
     }
 
     pub async fn share<T>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
@@ -364,7 +370,7 @@ where
         }
         let client = self
             .instruments_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
@@ -372,27 +378,29 @@ where
         };
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let share = client.share_by(request).await?.into_inner().instrument;
         Ok(share.map(|x| x.into()))
     }
 
     pub async fn currencies(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let currencies = client.currencies(request).await?.into_inner().instruments;
         Ok(currencies.into_iter().map(|v| v.into()).collect())
     }
 
     pub async fn currency<T>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
@@ -404,7 +412,7 @@ where
         }
         let client = self
             .instruments_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
@@ -412,27 +420,29 @@ where
         };
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let currency = client.currency_by(request).await?.into_inner().instrument;
         Ok(currency.map(|x| x.into()))
     }
 
     pub async fn futures(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let futures = client.futures(request).await?.into_inner().instruments;
         Ok(futures.into_iter().map(|v| v.into()).collect())
     }
 
     pub async fn future<T>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
@@ -444,7 +454,7 @@ where
         }
         let client = self
             .instruments_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
@@ -452,6 +462,7 @@ where
         };
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let future = client.future_by(request).await?.into_inner().instrument;
         Ok(future.map(|x| x.into()))
     }
@@ -491,7 +502,7 @@ where
     // }
 
     pub async fn trading_status<T>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: T,
     ) -> Result<enums::TradingStatus, Box<dyn Error>>
@@ -500,13 +511,14 @@ where
     {
         let client = self
             .market_data_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let message = GetTradingStatusRequest {
             instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         Ok(client
             .get_trading_status(request)
             .await?
@@ -516,7 +528,7 @@ where
     }
 
     pub async fn candlesticks<T>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: T,
         interval: enums::CandlestickInterval,
@@ -538,9 +550,10 @@ where
         message.set_interval(interval_clone.clone().into());
         let client = self
             .market_data_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
         Ok(candlesticks
             .into_iter()
@@ -554,7 +567,7 @@ where
     }
 
     pub async fn orderbook<T>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: T,
         depth: usize,
@@ -569,19 +582,20 @@ where
         };
         let client = self
             .market_data_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
     pub async fn order(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<types::Order, Box<dyn Error>> {
         let client = self
             .orders_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let message = tinkoff_invest_types::GetOrderStateRequest {
             account_id: ctx.to_account_id().into(),
@@ -589,13 +603,14 @@ where
             ..Default::default()
         };
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
     }
 
     #[inline]
     pub async fn operations<K>(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: K,
         state: enums::OperationState,
@@ -609,7 +624,7 @@ where
         let to = Some(to.into());
         let client = self
             .operations_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let mut message = OperationsRequest {
             account_id: ctx.to_account_id().into(),
@@ -620,13 +635,14 @@ where
         };
         message.set_state(state.into());
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let response = client.get_operations(request).await?;
         let operations = response.into_inner().operations;
         Ok(operations.into_iter().map(|x| x.into()).collect())
     }
 
     pub async fn portfolio(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
         let mut message = PortfolioRequest {
@@ -636,9 +652,10 @@ where
         message.set_currency(CurrencyRequest::Rub);
         let client = self
             .operations_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let portfolio_positions = client
             .get_portfolio(request)
             .await?
@@ -651,7 +668,7 @@ where
     }
 
     pub async fn positions(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<types::Positions, Box<dyn Error>> {
         let message = PositionsRequest {
@@ -659,9 +676,10 @@ where
         };
         let client = self
             .operations_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let response = client.get_positions(request).await?;
         let positions = response.into_inner().into();
         Ok(positions)
@@ -669,7 +687,7 @@ where
 
     #[inline]
     pub async fn limit_order(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
         instrument: impl traits::ToUid,
         direction: enums::OrderDirection,
@@ -688,9 +706,10 @@ where
         message.set_order_type(tinkoff_invest_types::OrderType::Limit);
         let client = self
             .orders_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let response = client.post_order(request).await?;
         let order = response.into_inner().into();
         Ok(order)
@@ -698,7 +717,7 @@ where
 
     #[inline]
     pub async fn cancel_order(
-        &mut self,
+        &self,
         ctx: &TinkoffInvestCallContext,
     ) -> Result<Option<types::DateTime>, Box<dyn Error>> {
         let mut message = CancelOrderRequest {
@@ -709,9 +728,10 @@ where
         message.set_order_id_type(OrderIdType::Exchange);
         let client = self
             .orders_service_client
-            .as_mut()
+            .as_ref()
             .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
+        let mut client = client.lock().unwrap();
         let response = client.cancel_order(request).await?;
         Ok(response.into_inner().time.map(|x| x.into()))
     }
