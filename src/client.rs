@@ -40,22 +40,8 @@ impl TinkoffInvestBuilderFlags {
     }
 
     #[inline]
-    pub fn enable(&mut self, flag: u8) {
-        self.0 |= flag;
-    }
-
-    #[inline]
-    pub fn disable(&mut self, flag: u8) {
-        self.0 &= !flag;
-    }
-
-    #[inline]
     pub fn set(&mut self, flag: u8, value: bool) {
-        if value {
-            self.enable(flag);
-        } else {
-            self.disable(flag);
-        }
+        self.0 = if value { self.0 | flag } else { self.0 & !flag };
     }
 
     #[inline]
