@@ -2,7 +2,7 @@ use crate::{traits, types};
 
 /// Контекст вызова, содержащий информацию для идентификации запроса
 #[derive(Debug, Clone)]
-pub struct TinkoffInvestCallContext {
+pub struct TCallContext {
     /// Идентификатор запроса (x-tracking-id) (опционально)
     pub request_id: Option<String>,
     /// Идентификатор аккаунта (опционально)
@@ -11,7 +11,7 @@ pub struct TinkoffInvestCallContext {
     pub order_id: Option<types::OrderId>,
 }
 
-impl TinkoffInvestCallContext {
+impl TCallContext {
     /// Создает новый контекст
     pub fn new() -> Self {
         Self {
@@ -46,23 +46,23 @@ impl TinkoffInvestCallContext {
     }
 }
 
-impl traits::ToAccountId for TinkoffInvestCallContext {
+impl traits::ToAccountId for TCallContext {
     fn to_account_id(&self) -> types::AccountId {
         self.account_id
             .clone()
-            .expect("account_id must be set in TinkoffInvestCallContext to use ToAccountId")
+            .expect("account_id must be set in TCallContext to use ToAccountId")
     }
 }
 
-impl traits::ToOrderId for TinkoffInvestCallContext {
+impl traits::ToOrderId for TCallContext {
     fn to_order_id(&self) -> types::OrderId {
         self.order_id
             .clone()
-            .expect("order_id must be set in TinkoffInvestCallContext to use ToOrderId")
+            .expect("order_id must be set in TCallContext to use ToOrderId")
     }
 }
 
-impl Default for TinkoffInvestCallContext {
+impl Default for TCallContext {
     fn default() -> Self {
         Self::new()
     }

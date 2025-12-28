@@ -4,9 +4,7 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::traits::{ToAccountId, ToOrderId};
-use crate::{
-    TinkoffInvestCallContext, TinkoffInvestError, TinkoffInvestInterceptor, enums, traits, types,
-};
+use crate::{TCallContext, TinkoffInvestError, TinkoffInvestInterceptor, enums, traits, types};
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
@@ -278,11 +276,8 @@ impl<I> TinkoffInvest<I>
 where
     I: Interceptor,
 {
-    /// Создает Request с установленным x-tracking-id из TinkoffInvestCallContext
-    fn create_request_with_context<T>(
-        message: T,
-        ctx: &TinkoffInvestCallContext,
-    ) -> TonicRequest<T> {
+    /// Создает Request с установленным x-tracking-id из TCallContext
+    fn create_request_with_context<T>(message: T, ctx: &TCallContext) -> TonicRequest<T> {
         let mut request = TonicRequest::new(message);
         let request_id_string = ctx
             .request_id
@@ -297,7 +292,7 @@ where
 
     pub async fn accounts(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
     ) -> Result<Vec<types::Account>, Box<dyn Error>> {
         let client = self
             .users_service_client
@@ -314,7 +309,7 @@ where
 
     pub async fn market_instruments(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument_type: enums::InstrumentType,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         match instrument_type {
@@ -326,7 +321,7 @@ where
 
     pub async fn market_instrument<T>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
@@ -341,7 +336,7 @@ where
 
     pub async fn shares(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
@@ -357,7 +352,7 @@ where
 
     pub async fn share<T>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
@@ -383,7 +378,7 @@ where
 
     pub async fn currencies(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
@@ -399,7 +394,7 @@ where
 
     pub async fn currency<T>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
@@ -425,7 +420,7 @@ where
 
     pub async fn futures(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
     ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
         let client = self
             .instruments_service_client
@@ -441,7 +436,7 @@ where
 
     pub async fn future<T>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
@@ -467,7 +462,7 @@ where
 
     pub async fn trading_status<T>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: T,
     ) -> Result<enums::TradingStatus, Box<dyn Error>>
     where
@@ -493,7 +488,7 @@ where
 
     pub async fn candlesticks<T>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: T,
         interval: enums::CandlestickInterval,
         from: types::DateTime,
@@ -532,7 +527,7 @@ where
 
     pub async fn orderbook<T>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: T,
         depth: usize,
     ) -> Result<types::OrderBook, Box<dyn Error>>
@@ -553,10 +548,7 @@ where
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
-    pub async fn order(
-        &self,
-        ctx: &TinkoffInvestCallContext,
-    ) -> Result<types::Order, Box<dyn Error>> {
+    pub async fn order(&self, ctx: &TCallContext) -> Result<types::Order, Box<dyn Error>> {
         let client = self
             .orders_service_client
             .as_ref()
@@ -575,7 +567,7 @@ where
     #[inline]
     pub async fn operations<K>(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: K,
         state: enums::OperationState,
         from: types::DateTime,
@@ -607,7 +599,7 @@ where
 
     pub async fn portfolio(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
     ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
         let mut message = PortfolioRequest {
             account_id: ctx.to_account_id().into(),
@@ -631,10 +623,7 @@ where
         Ok(portfolio_positions)
     }
 
-    pub async fn positions(
-        &self,
-        ctx: &TinkoffInvestCallContext,
-    ) -> Result<types::Positions, Box<dyn Error>> {
+    pub async fn positions(&self, ctx: &TCallContext) -> Result<types::Positions, Box<dyn Error>> {
         let message = PositionsRequest {
             account_id: ctx.to_account_id().into(),
         };
@@ -652,7 +641,7 @@ where
     #[inline]
     pub async fn limit_order(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
         instrument: impl traits::ToUid,
         direction: enums::OrderDirection,
         quantity: u64,
@@ -682,7 +671,7 @@ where
     #[inline]
     pub async fn cancel_order(
         &self,
-        ctx: &TinkoffInvestCallContext,
+        ctx: &TCallContext,
     ) -> Result<Option<types::DateTime>, Box<dyn Error>> {
         let mut message = CancelOrderRequest {
             account_id: ctx.to_account_id().into(),

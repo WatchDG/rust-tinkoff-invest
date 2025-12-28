@@ -10,7 +10,7 @@ pub mod streams;
 pub mod traits;
 pub mod types;
 
-pub use call_context::TinkoffInvestCallContext;
+pub use call_context::TCallContext;
 pub use client::{TinkoffInvest, TinkoffInvestBuilder};
 pub use error::TinkoffInvestError;
 pub use interceptor::TinkoffInvestInterceptor;
