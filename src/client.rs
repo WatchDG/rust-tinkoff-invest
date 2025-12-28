@@ -49,27 +49,27 @@ impl TClientBuilderFlags {
     }
 
     #[inline]
-    pub fn users_enabled(&self) -> bool {
+    pub fn is_users_enabled(&self) -> bool {
         self.is_enabled(Self::USERS)
     }
 
     #[inline]
-    pub fn instruments_enabled(&self) -> bool {
+    pub fn is_instruments_enabled(&self) -> bool {
         self.is_enabled(Self::INSTRUMENTS)
     }
 
     #[inline]
-    pub fn market_data_enabled(&self) -> bool {
+    pub fn is_market_data_enabled(&self) -> bool {
         self.is_enabled(Self::MARKET_DATA)
     }
 
     #[inline]
-    pub fn operations_enabled(&self) -> bool {
+    pub fn is_operations_enabled(&self) -> bool {
         self.is_enabled(Self::OPERATIONS)
     }
 
     #[inline]
-    pub fn orders_enabled(&self) -> bool {
+    pub fn is_orders_enabled(&self) -> bool {
         self.is_enabled(Self::ORDERS)
     }
 }
@@ -197,7 +197,7 @@ where
         let users_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.flags.users_enabled(),
+            self.flags.is_users_enabled(),
             UsersServiceClient::with_interceptor,
             max_decoding_message_size
         );
@@ -205,7 +205,7 @@ where
         let instruments_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.flags.instruments_enabled(),
+            self.flags.is_instruments_enabled(),
             InstrumentsServiceClient::with_interceptor,
             max_decoding_message_size
         );
@@ -213,7 +213,7 @@ where
         let market_data_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.flags.market_data_enabled(),
+            self.flags.is_market_data_enabled(),
             MarketDataServiceClient::with_interceptor,
             max_decoding_message_size
         );
@@ -221,7 +221,7 @@ where
         let operations_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.flags.operations_enabled(),
+            self.flags.is_operations_enabled(),
             OperationsServiceClient::with_interceptor,
             max_decoding_message_size
         );
@@ -229,7 +229,7 @@ where
         let orders_service_client = create_service_client!(
             &channel,
             &interceptor,
-            self.flags.orders_enabled(),
+            self.flags.is_orders_enabled(),
             OrdersServiceClient::with_interceptor,
             max_decoding_message_size
         );
