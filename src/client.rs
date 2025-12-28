@@ -236,9 +236,9 @@ where
         );
 
         Ok(TClient {
-            endpoint,
-            channel,
-            interceptor,
+            // endpoint,
+            // channel,
+            // interceptor,
             users_service_client,
             instruments_service_client,
             market_data_service_client,
@@ -261,9 +261,9 @@ pub struct TClient<I>
 where
     I: Interceptor,
 {
-    pub(crate) endpoint: Endpoint,
-    pub(crate) channel: Channel,
-    pub(crate) interceptor: I,
+    // pub(crate) endpoint: Endpoint,
+    // pub(crate) channel: Channel,
+    // pub(crate) interceptor: I,
     users_service_client: Option<Arc<Mutex<UsersServiceClient<InterceptedService<Channel, I>>>>>,
     instruments_service_client:
         Option<Arc<Mutex<InstrumentsServiceClient<InterceptedService<Channel, I>>>>>,
