@@ -77,7 +77,7 @@ impl Default for CachedCandlesticksBucket {
 
 #[derive(Debug)]
 pub struct CachedCandlesticks {
-    inner: HashMap<types::Figi, CachedCandlesticksBucket>,
+    inner: HashMap<types::Uid, CachedCandlesticksBucket>,
 }
 
 impl CachedCandlesticks {
@@ -89,25 +89,24 @@ impl CachedCandlesticks {
     }
 
     #[inline]
-    pub fn create_bucket(&mut self, figi: &types::Figi) {
-        if !self.inner.contains_key(figi) {
+    pub fn create_bucket(&mut self, instrument_uid: &types::Uid) {
+        if !self.inner.contains_key(instrument_uid) {
             let bucket = CachedCandlesticksBucket::new();
-            self.inner.insert(figi.clone(), bucket);
+            self.inner.insert(instrument_uid.clone(), bucket);
         }
     }
 
     #[inline]
     pub fn get_bucket_mut(
         &mut self,
-        figi: &types::Figi,
+        instrument_uid: &types::Uid,
     ) -> Result<&mut CachedCandlesticksBucket, TError> {
-        self.inner.get_mut(figi).ok_or(TError::FigiNotFound)
+        self.inner.get_mut(instrument_uid).ok_or(TError::FigiNotFound)
     }
 
     #[inline]
     pub fn push(&mut self, candlestick: types::Candlestick) -> Result<(), TError> {
-        let figi = candlestick.figi.as_ref().ok_or(TError::FigiNotSet)?;
-        let bucket = self.get_bucket_mut(figi)?;
+        let bucket = self.get_bucket_mut(&candlestick.instrument_uid)?;
         bucket.push(candlestick);
         Ok(())
     }

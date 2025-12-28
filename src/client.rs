@@ -531,11 +531,17 @@ where
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
         Ok(candlesticks
             .into_iter()
-            .map(|x| {
-                let mut candlestick = types::Candlestick::from(x);
-                candlestick.uid = Some(uid_clone.clone());
-                candlestick.interval = Some(interval_clone.clone());
-                candlestick
+            .filter(|x| x.time.is_some())
+            .map(|x| types::Candlestick {
+                instrument_uid: uid_clone.clone(),
+                interval: interval_clone.clone(),
+                open: x.open.map(|v| v.into()),
+                high: x.high.map(|v| v.into()),
+                low: x.low.map(|v| v.into()),
+                close: x.close.map(|v| v.into()),
+                volume: x.volume as u64,
+                datetime: x.time.unwrap().into(),
+                is_complete: x.is_complete,
             })
             .collect())
     }
