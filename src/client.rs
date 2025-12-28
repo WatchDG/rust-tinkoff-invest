@@ -75,7 +75,7 @@ impl TClientBuilderFlags {
 }
 
 macro_rules! create_service_client {
-    ($channel:expr, $interceptor:expr, $enabled:expr, $factory:expr, $max_size:expr) => {{
+    ($enabled:expr, $channel:expr, $interceptor:expr, $factory:expr, $max_size:expr) => {{
         if $enabled {
             let channel_clone = $channel.clone();
             let interceptor_clone = $interceptor.clone();
@@ -195,41 +195,41 @@ where
         let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
 
         let users_service_client = create_service_client!(
+            self.flags.is_users_enabled(),
             &channel,
             &interceptor,
-            self.flags.is_users_enabled(),
             UsersServiceClient::with_interceptor,
             max_decoding_message_size
         );
 
         let instruments_service_client = create_service_client!(
+            self.flags.is_instruments_enabled(),
             &channel,
             &interceptor,
-            self.flags.is_instruments_enabled(),
             InstrumentsServiceClient::with_interceptor,
             max_decoding_message_size
         );
 
         let market_data_service_client = create_service_client!(
+            self.flags.is_market_data_enabled(),
             &channel,
             &interceptor,
-            self.flags.is_market_data_enabled(),
             MarketDataServiceClient::with_interceptor,
             max_decoding_message_size
         );
 
         let operations_service_client = create_service_client!(
+            self.flags.is_operations_enabled(),
             &channel,
             &interceptor,
-            self.flags.is_operations_enabled(),
             OperationsServiceClient::with_interceptor,
             max_decoding_message_size
         );
 
         let orders_service_client = create_service_client!(
+            self.flags.is_orders_enabled(),
             &channel,
             &interceptor,
-            self.flags.is_orders_enabled(),
             OrdersServiceClient::with_interceptor,
             max_decoding_message_size
         );
