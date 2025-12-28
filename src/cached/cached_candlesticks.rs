@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use crate::{TinkoffInvestError, types};
+use crate::{TError, types};
 
 #[derive(Debug)]
 pub struct CachedCandlesticksBucket {
@@ -100,18 +100,13 @@ impl CachedCandlesticks {
     pub fn get_bucket_mut(
         &mut self,
         figi: &types::Figi,
-    ) -> Result<&mut CachedCandlesticksBucket, TinkoffInvestError> {
-        self.inner
-            .get_mut(figi)
-            .ok_or(TinkoffInvestError::FigiNotFound)
+    ) -> Result<&mut CachedCandlesticksBucket, TError> {
+        self.inner.get_mut(figi).ok_or(TError::FigiNotFound)
     }
 
     #[inline]
-    pub fn push(&mut self, candlestick: types::Candlestick) -> Result<(), TinkoffInvestError> {
-        let figi = candlestick
-            .figi
-            .as_ref()
-            .ok_or(TinkoffInvestError::FigiNotSet)?;
+    pub fn push(&mut self, candlestick: types::Candlestick) -> Result<(), TError> {
+        let figi = candlestick.figi.as_ref().ok_or(TError::FigiNotSet)?;
         let bucket = self.get_bucket_mut(figi)?;
         bucket.push(candlestick);
         Ok(())

@@ -4,7 +4,7 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::traits::{ToAccountId, ToOrderId};
-use crate::{TCallContext, TinkoffInvestError, TinkoffInvestInterceptor, enums, traits, types};
+use crate::{TCallContext, TError, TinkoffInvestInterceptor, enums, traits, types};
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
@@ -174,9 +174,7 @@ where
                 .timeout(Self::DEFAULT_TIMEOUT)
         });
         let channel = endpoint.connect().await?;
-        let interceptor = self
-            .interceptor
-            .ok_or(TinkoffInvestError::InterceptorNotSet)?;
+        let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
 
         let users_service_client = create_service_client!(
             &channel,
@@ -297,7 +295,7 @@ where
         let client = self
             .users_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::UsersServiceClientNotInit)?;
+            .ok_or(TError::UsersServiceClientNotInit)?;
         let message = GetAccountsRequest {
             ..Default::default()
         };
@@ -341,7 +339,7 @@ where
         let client = self
             .instruments_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request_with_context(message, ctx);
@@ -359,12 +357,12 @@ where
         T: traits::ToInstrumentType + traits::ToFigi,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Share {
-            return Err(TinkoffInvestError::MarketInstrumentTypeNotShare.into());
+            return Err(TError::MarketInstrumentTypeNotShare.into());
         }
         let client = self
             .instruments_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
             ..Default::default()
@@ -383,7 +381,7 @@ where
         let client = self
             .instruments_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request_with_context(message, ctx);
@@ -401,12 +399,12 @@ where
         T: traits::ToInstrumentType + traits::ToFigi,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Currency {
-            return Err(TinkoffInvestError::MarketInstrumentTypeNotCurrency.into());
+            return Err(TError::MarketInstrumentTypeNotCurrency.into());
         }
         let client = self
             .instruments_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
             ..Default::default()
@@ -425,7 +423,7 @@ where
         let client = self
             .instruments_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request_with_context(message, ctx);
@@ -443,12 +441,12 @@ where
         T: traits::ToInstrumentType + traits::ToFigi,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Future {
-            return Err(TinkoffInvestError::MarketInstrumentTypeNotFuture.into());
+            return Err(TError::MarketInstrumentTypeNotFuture.into());
         }
         let client = self
             .instruments_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
             ..Default::default()
@@ -471,7 +469,7 @@ where
         let client = self
             .market_data_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
+            .ok_or(TError::MarketDataServiceClientNotInit)?;
         let message = GetTradingStatusRequest {
             instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
@@ -510,7 +508,7 @@ where
         let client = self
             .market_data_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
+            .ok_or(TError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
         let mut client = client.lock().unwrap();
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
@@ -542,7 +540,7 @@ where
         let client = self
             .market_data_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
+            .ok_or(TError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
         let mut client = client.lock().unwrap();
         Ok(client.get_order_book(request).await?.into_inner().into())
@@ -552,7 +550,7 @@ where
         let client = self
             .orders_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
+            .ok_or(TError::OrdersServiceClientNotInit)?;
         let message = tinkoff_invest_types::GetOrderStateRequest {
             account_id: ctx.to_account_id().into(),
             order_id: ctx.to_order_id().into(),
@@ -581,7 +579,7 @@ where
         let client = self
             .operations_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
+            .ok_or(TError::OperationsServiceClientNotInit)?;
         let mut message = OperationsRequest {
             account_id: ctx.to_account_id().into(),
             figi: Some(instrument.to_figi().into()),
@@ -609,7 +607,7 @@ where
         let client = self
             .operations_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
+            .ok_or(TError::OperationsServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
         let mut client = client.lock().unwrap();
         let portfolio_positions = client
@@ -630,7 +628,7 @@ where
         let client = self
             .operations_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
+            .ok_or(TError::OperationsServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
         let mut client = client.lock().unwrap();
         let response = client.get_positions(request).await?;
@@ -660,7 +658,7 @@ where
         let client = self
             .orders_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
+            .ok_or(TError::OrdersServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
         let mut client = client.lock().unwrap();
         let response = client.post_order(request).await?;
@@ -682,7 +680,7 @@ where
         let client = self
             .orders_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
+            .ok_or(TError::OrdersServiceClientNotInit)?;
         let request = Self::create_request_with_context(message, ctx);
         let mut client = client.lock().unwrap();
         let response = client.cancel_order(request).await?;

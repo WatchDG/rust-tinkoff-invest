@@ -9,7 +9,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::transport::Endpoint;
 use tonic::{service::Interceptor, transport::Channel};
 
-use crate::{TClient, TinkoffInvestError, enums, traits};
+use crate::{TClient, TError, enums, traits};
 
 pub struct MarketDataStreamBuilder<I>
 where
@@ -45,11 +45,9 @@ where
         } else if let Some(endpoint) = self.endpoint {
             endpoint.connect().await?
         } else {
-            return Err(TinkoffInvestError::ChannelNotSet.into());
+            return Err(TError::ChannelNotSet.into());
         };
-        let interceptor = self
-            .interceptor
-            .ok_or(TinkoffInvestError::InterceptorNotSet)?;
+        let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
         let mut client = MarketDataStreamServiceClient::with_interceptor(channel, interceptor);
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<tit::MarketDataRequest>();
         let receiver_stream = UnboundedReceiverStream::new(receiver);

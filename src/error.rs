@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TinkoffInvestError {
+pub enum TError {
     InterceptorNotSet,
     HandlerNotSet,
     AccountNotSet,
@@ -29,37 +29,37 @@ pub enum TinkoffInvestError {
     FigiNotSet,
 }
 
-impl Display for TinkoffInvestError {
+impl Display for TError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            TinkoffInvestError::InterceptorNotSet => {
+            TError::InterceptorNotSet => {
                 write!(f, "Interceptor not set.")
             }
-            TinkoffInvestError::AccountNotSet => {
+            TError::AccountNotSet => {
                 write!(f, "Account not set.")
             }
-            TinkoffInvestError::UsersServiceClientNotInit => {
+            TError::UsersServiceClientNotInit => {
                 write!(f, "Users service client not init.")
             }
-            TinkoffInvestError::InstrumentsServiceClientNotInit => {
+            TError::InstrumentsServiceClientNotInit => {
                 write!(f, "Instruments service client not init.")
             }
-            TinkoffInvestError::MarketDataServiceClientNotInit => {
+            TError::MarketDataServiceClientNotInit => {
                 write!(f, "Market data service client not init.")
             }
-            TinkoffInvestError::MarketDataStreamServiceClientNotInit => {
+            TError::MarketDataStreamServiceClientNotInit => {
                 write!(f, "Market data stream service client not init.")
             }
-            TinkoffInvestError::OperationsServiceClientNotInit => {
+            TError::OperationsServiceClientNotInit => {
                 write!(f, "Operations service client not init.")
             }
-            TinkoffInvestError::OperationsStreamServiceClientNotInit => {
+            TError::OperationsStreamServiceClientNotInit => {
                 write!(f, "Operations stream service client not init.")
             }
-            TinkoffInvestError::OrdersServiceClientNotInit => {
+            TError::OrdersServiceClientNotInit => {
                 write!(f, "Orders service client not init.")
             }
-            TinkoffInvestError::OrdersStreamServiceClientNotInit => {
+            TError::OrdersStreamServiceClientNotInit => {
                 write!(f, "Orders stream service client not init.")
             }
             _ => {
@@ -69,4 +69,4 @@ impl Display for TinkoffInvestError {
     }
 }
 
-impl Error for TinkoffInvestError {}
+impl Error for TError {}
