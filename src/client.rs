@@ -314,9 +314,7 @@ where
             .users_service_client
             .as_ref()
             .ok_or(TError::UsersServiceClientNotInit)?;
-        let message = GetAccountsRequest {
-            ..Default::default()
-        };
+        let message = GetAccountsRequest::default();
         let request = Self::create_request(ctx, message);
         let mut client = client.lock().unwrap();
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
