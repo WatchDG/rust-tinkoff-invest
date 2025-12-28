@@ -293,7 +293,7 @@ where
     I: Interceptor,
 {
     /// Создает Request с установленным x-tracking-id из TCallContext
-    fn create_request_with_context<T>(message: T, ctx: &TCallContext) -> TonicRequest<T> {
+    fn create_request_with_context<T>(ctx: &TCallContext, message: T) -> TonicRequest<T> {
         let mut request = TonicRequest::new(message);
         let request_id_string = ctx
             .request_id
@@ -317,7 +317,7 @@ where
         let message = GetAccountsRequest {
             ..Default::default()
         };
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
         Ok(accounts.into_iter().map(|v| v.into()).collect())
@@ -360,7 +360,7 @@ where
             .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let shares = client.shares(request).await?.into_inner().instruments;
         Ok(shares.into_iter().map(|x| x.into()).collect())
@@ -386,7 +386,7 @@ where
             ..Default::default()
         };
         message.set_id_type(InstrumentIdType::Figi);
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let share = client.share_by(request).await?.into_inner().instrument;
         Ok(share.map(|x| x.into()))
@@ -402,7 +402,7 @@ where
             .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let currencies = client.currencies(request).await?.into_inner().instruments;
         Ok(currencies.into_iter().map(|v| v.into()).collect())
@@ -428,7 +428,7 @@ where
             ..Default::default()
         };
         message.set_id_type(InstrumentIdType::Figi);
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let currency = client.currency_by(request).await?.into_inner().instrument;
         Ok(currency.map(|x| x.into()))
@@ -444,7 +444,7 @@ where
             .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let futures = client.futures(request).await?.into_inner().instruments;
         Ok(futures.into_iter().map(|v| v.into()).collect())
@@ -470,7 +470,7 @@ where
             ..Default::default()
         };
         message.set_id_type(InstrumentIdType::Figi);
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let future = client.future_by(request).await?.into_inner().instrument;
         Ok(future.map(|x| x.into()))
@@ -492,7 +492,7 @@ where
             instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         Ok(client
             .get_trading_status(request)
@@ -527,7 +527,7 @@ where
             .market_data_service_client
             .as_ref()
             .ok_or(TError::MarketDataServiceClientNotInit)?;
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
         Ok(candlesticks
@@ -559,7 +559,7 @@ where
             .market_data_service_client
             .as_ref()
             .ok_or(TError::MarketDataServiceClientNotInit)?;
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
@@ -574,7 +574,7 @@ where
             order_id: ctx.to_order_id().into(),
             ..Default::default()
         };
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
@@ -606,7 +606,7 @@ where
             to,
         };
         message.set_state(state.into());
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let response = client.get_operations(request).await?;
         let operations = response.into_inner().operations;
@@ -626,7 +626,7 @@ where
             .operations_service_client
             .as_ref()
             .ok_or(TError::OperationsServiceClientNotInit)?;
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let portfolio_positions = client
             .get_portfolio(request)
@@ -647,7 +647,7 @@ where
             .operations_service_client
             .as_ref()
             .ok_or(TError::OperationsServiceClientNotInit)?;
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let response = client.get_positions(request).await?;
         let positions = response.into_inner().into();
@@ -677,7 +677,7 @@ where
             .orders_service_client
             .as_ref()
             .ok_or(TError::OrdersServiceClientNotInit)?;
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let response = client.post_order(request).await?;
         let order = response.into_inner().into();
@@ -699,7 +699,7 @@ where
             .orders_service_client
             .as_ref()
             .ok_or(TError::OrdersServiceClientNotInit)?;
-        let request = Self::create_request_with_context(message, ctx);
+        let request = Self::create_request_with_context(ctx, message);
         let mut client = client.lock().unwrap();
         let response = client.cancel_order(request).await?;
         Ok(response.into_inner().time.map(|x| x.into()))
