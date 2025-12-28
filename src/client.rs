@@ -93,7 +93,7 @@ macro_rules! create_service_client {
 
 pub struct TClientBuilder<I>
 where
-    I: Interceptor + Clone,
+    I: Interceptor + Clone + Send,
 {
     endpoint: Option<Endpoint>,
     interceptor: Option<I>,
@@ -104,7 +104,7 @@ where
 
 impl<I> TClientBuilder<I>
 where
-    I: Interceptor + Clone,
+    I: Interceptor + Clone + Send,
 {
     /// URL эндпоинта Tinkoff Invest API по умолчанию
     const DEFAULT_ENDPOINT: &'static str = "https://invest-public-api.tinkoff.ru";
@@ -250,7 +250,7 @@ where
 
 impl<I> Default for TClientBuilder<I>
 where
-    I: Interceptor + Clone,
+    I: Interceptor + Clone + Send,
 {
     fn default() -> Self {
         Self::new()
@@ -259,7 +259,7 @@ where
 
 pub struct TClient<I>
 where
-    I: Interceptor,
+    I: Interceptor + Send,
 {
     // pub(crate) endpoint: Endpoint,
     // pub(crate) channel: Channel,
@@ -291,7 +291,7 @@ impl TClient<TInterceptor> {
 
 impl<I> TClient<I>
 where
-    I: Interceptor,
+    I: Interceptor + Send,
 {
     /// Создает Request с установленным x-tracking-id из TCallContext
     fn create_request<T>(ctx: &TCallContext, message: T) -> TonicRequest<T> {
