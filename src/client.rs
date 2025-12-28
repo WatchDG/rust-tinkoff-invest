@@ -3,8 +3,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use uuid::Uuid;
 
+use crate::interceptor::TInterceptor;
 use crate::traits::{ToAccountId, ToOrderId};
-use crate::{TCallContext, TError, TInterceptor, enums, traits, types};
+use crate::{TCallContext, TError, enums, traits, types};
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
