@@ -97,6 +97,8 @@ where
     endpoint: Option<Endpoint>,
     interceptor: Option<I>,
     flags: TinkoffInvestBuilderFlags,
+    max_decoding_message_size: Option<usize>,
+    timeout: Option<Duration>,
 }
 
 impl<I> TClientBuilder<I>
@@ -110,7 +112,7 @@ where
     const DEFAULT_TIMEOUT: Duration = Duration::from_millis(10000);
 
     /// Максимальный размер декодируемого сообщения (256 MB)
-    const MAX_DECODING_MESSAGE_SIZE: usize = 256 * 1024 * 1024;
+    const DEFAULT_MAX_DECODING_MESSAGE_SIZE: usize = 256 * 1024 * 1024;
 
     #[inline]
     pub fn new() -> Self {
@@ -118,6 +120,8 @@ where
             endpoint: None,
             interceptor: None,
             flags: TinkoffInvestBuilderFlags::new(),
+            max_decoding_message_size: None,
+            timeout: None,
         }
     }
 
@@ -166,12 +170,28 @@ where
     }
 
     #[inline]
+    pub fn set_max_decoding_message_size(mut self, size: Option<usize>) -> Self {
+        self.max_decoding_message_size = size;
+        self
+    }
+
+    #[inline]
+    pub fn set_timeout(mut self, timeout: Option<Duration>) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    #[inline]
     pub async fn build(self) -> Result<TClient<I>, Box<dyn Error>> {
+        let timeout = self.timeout.unwrap_or(Self::DEFAULT_TIMEOUT);
+        let max_decoding_message_size = self
+            .max_decoding_message_size
+            .unwrap_or(Self::DEFAULT_MAX_DECODING_MESSAGE_SIZE);
         let endpoint = self.endpoint.unwrap_or_else(|| {
             Channel::from_static(Self::DEFAULT_ENDPOINT)
                 .tls_config(ClientTlsConfig::new().with_native_roots())
                 .unwrap()
-                .timeout(Self::DEFAULT_TIMEOUT)
+                .timeout(timeout)
         });
         let channel = endpoint.connect().await?;
         let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
@@ -181,7 +201,7 @@ where
             &interceptor,
             self.flags.users_enabled(),
             UsersServiceClient::with_interceptor,
-            Self::MAX_DECODING_MESSAGE_SIZE
+            max_decoding_message_size
         );
 
         let instruments_service_client = create_service_client!(
@@ -189,7 +209,7 @@ where
             &interceptor,
             self.flags.instruments_enabled(),
             InstrumentsServiceClient::with_interceptor,
-            Self::MAX_DECODING_MESSAGE_SIZE
+            max_decoding_message_size
         );
 
         let market_data_service_client = create_service_client!(
@@ -197,7 +217,7 @@ where
             &interceptor,
             self.flags.market_data_enabled(),
             MarketDataServiceClient::with_interceptor,
-            Self::MAX_DECODING_MESSAGE_SIZE
+            max_decoding_message_size
         );
 
         let operations_service_client = create_service_client!(
@@ -205,7 +225,7 @@ where
             &interceptor,
             self.flags.operations_enabled(),
             OperationsServiceClient::with_interceptor,
-            Self::MAX_DECODING_MESSAGE_SIZE
+            max_decoding_message_size
         );
 
         let orders_service_client = create_service_client!(
@@ -213,7 +233,7 @@ where
             &interceptor,
             self.flags.orders_enabled(),
             OrdersServiceClient::with_interceptor,
-            Self::MAX_DECODING_MESSAGE_SIZE
+            max_decoding_message_size
         );
 
         Ok(TClient {
