@@ -24,9 +24,9 @@ use tonic::{
 
 /// Флаги для включения сервисных клиентов в TClientBuilder
 #[derive(Clone, Copy, Default)]
-pub struct TinkoffInvestBuilderFlags(u8);
+pub struct TClientBuilderFlags(u8);
 
-impl TinkoffInvestBuilderFlags {
+impl TClientBuilderFlags {
     const USERS: u8 = 1 << 0;
     const INSTRUMENTS: u8 = 1 << 1;
     const MARKET_DATA: u8 = 1 << 2;
@@ -96,7 +96,7 @@ where
 {
     endpoint: Option<Endpoint>,
     interceptor: Option<I>,
-    flags: TinkoffInvestBuilderFlags,
+    flags: TClientBuilderFlags,
     max_decoding_message_size: Option<usize>,
     timeout: Option<Duration>,
 }
@@ -119,7 +119,7 @@ where
         Self {
             endpoint: None,
             interceptor: None,
-            flags: TinkoffInvestBuilderFlags::new(),
+            flags: TClientBuilderFlags::new(),
             max_decoding_message_size: None,
             timeout: None,
         }
@@ -139,33 +139,31 @@ where
 
     #[inline]
     pub fn enable_users_service_client(mut self, value: bool) -> Self {
-        self.flags.set(TinkoffInvestBuilderFlags::USERS, value);
+        self.flags.set(TClientBuilderFlags::USERS, value);
         self
     }
 
     #[inline]
     pub fn enable_instruments_service_client(mut self, value: bool) -> Self {
-        self.flags
-            .set(TinkoffInvestBuilderFlags::INSTRUMENTS, value);
+        self.flags.set(TClientBuilderFlags::INSTRUMENTS, value);
         self
     }
 
     #[inline]
     pub fn enable_market_data_service_client(mut self, value: bool) -> Self {
-        self.flags
-            .set(TinkoffInvestBuilderFlags::MARKET_DATA, value);
+        self.flags.set(TClientBuilderFlags::MARKET_DATA, value);
         self
     }
 
     #[inline]
     pub fn enable_operations_service_client(mut self, value: bool) -> Self {
-        self.flags.set(TinkoffInvestBuilderFlags::OPERATIONS, value);
+        self.flags.set(TClientBuilderFlags::OPERATIONS, value);
         self
     }
 
     #[inline]
     pub fn enable_orders_service_client(mut self, value: bool) -> Self {
-        self.flags.set(TinkoffInvestBuilderFlags::ORDERS, value);
+        self.flags.set(TClientBuilderFlags::ORDERS, value);
         self
     }
 
