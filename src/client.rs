@@ -22,7 +22,7 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
-/// Флаги для включения сервисных клиентов в TinkoffInvestBuilder
+/// Флаги для включения сервисных клиентов в TClientBuilder
 #[derive(Clone, Copy, Default)]
 pub struct TinkoffInvestBuilderFlags(u8);
 
@@ -90,7 +90,7 @@ macro_rules! create_service_client {
     }};
 }
 
-pub struct TinkoffInvestBuilder<I>
+pub struct TClientBuilder<I>
 where
     I: Interceptor + Clone,
 {
@@ -99,7 +99,7 @@ where
     flags: TinkoffInvestBuilderFlags,
 }
 
-impl<I> TinkoffInvestBuilder<I>
+impl<I> TClientBuilder<I>
 where
     I: Interceptor + Clone,
 {
@@ -231,7 +231,7 @@ where
     }
 }
 
-impl<I> Default for TinkoffInvestBuilder<I>
+impl<I> Default for TClientBuilder<I>
 where
     I: Interceptor + Clone,
 {
@@ -260,7 +260,7 @@ where
 impl TClient<TinkoffInvestInterceptor> {
     pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
         let interceptor = TinkoffInvestInterceptor::new(token);
-        TinkoffInvestBuilder::new()
+        TClientBuilder::new()
             .set_interceptor(Some(interceptor))
             .enable_users_service_client(true)
             .enable_instruments_service_client(true)
