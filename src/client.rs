@@ -166,7 +166,7 @@ where
     }
 
     #[inline]
-    pub async fn build(self) -> Result<TinkoffInvest<I>, Box<dyn Error>> {
+    pub async fn build(self) -> Result<TClient<I>, Box<dyn Error>> {
         let endpoint = self.endpoint.unwrap_or_else(|| {
             Channel::from_static(Self::DEFAULT_ENDPOINT)
                 .tls_config(ClientTlsConfig::new().with_native_roots())
@@ -218,7 +218,7 @@ where
             Self::MAX_DECODING_MESSAGE_SIZE
         );
 
-        Ok(TinkoffInvest {
+        Ok(TClient {
             endpoint,
             channel,
             interceptor,
@@ -240,7 +240,7 @@ where
     }
 }
 
-pub struct TinkoffInvest<I>
+pub struct TClient<I>
 where
     I: Interceptor,
 {
@@ -257,7 +257,7 @@ where
     orders_service_client: Option<Arc<Mutex<OrdersServiceClient<InterceptedService<Channel, I>>>>>,
 }
 
-impl TinkoffInvest<TinkoffInvestInterceptor> {
+impl TClient<TinkoffInvestInterceptor> {
     pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
         let interceptor = TinkoffInvestInterceptor::new(token);
         TinkoffInvestBuilder::new()
@@ -272,7 +272,7 @@ impl TinkoffInvest<TinkoffInvestInterceptor> {
     }
 }
 
-impl<I> TinkoffInvest<I>
+impl<I> TClient<I>
 where
     I: Interceptor,
 {

@@ -11,7 +11,7 @@ pub mod traits;
 pub mod types;
 
 pub use call_context::TCallContext;
-pub use client::{TinkoffInvest, TinkoffInvestBuilder};
+pub use client::{TClient, TinkoffInvestBuilder};
 pub use error::TinkoffInvestError;
 pub use interceptor::TinkoffInvestInterceptor;
 

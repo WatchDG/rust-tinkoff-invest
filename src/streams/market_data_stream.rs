@@ -9,7 +9,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::transport::Endpoint;
 use tonic::{service::Interceptor, transport::Channel};
 
-use crate::{TinkoffInvest, TinkoffInvestError, enums, traits};
+use crate::{TClient, TinkoffInvestError, enums, traits};
 
 pub struct MarketDataStreamBuilder<I>
 where
@@ -96,11 +96,11 @@ where
     }
 }
 
-impl<I> From<&TinkoffInvest<I>> for MarketDataStreamBuilder<I>
+impl<I> From<&TClient<I>> for MarketDataStreamBuilder<I>
 where
     I: Interceptor + Send + Clone + 'static,
 {
-    fn from(v: &TinkoffInvest<I>) -> Self {
+    fn from(v: &TClient<I>) -> Self {
         Self {
             endpoint: Some(v.endpoint.clone()),
             channel: Some(v.channel.clone()),
