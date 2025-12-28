@@ -13,7 +13,7 @@ pub mod types;
 pub use call_context::TCallContext;
 pub use client::{TClient, TClientBuilder};
 pub use error::TError;
-pub use interceptor::TinkoffInvestInterceptor;
+pub use interceptor::TInterceptor;
 
 // re-export
 pub use chrono;

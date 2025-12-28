@@ -4,7 +4,7 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::traits::{ToAccountId, ToOrderId};
-use crate::{TCallContext, TError, TinkoffInvestInterceptor, enums, traits, types};
+use crate::{TCallContext, TError, TInterceptor, enums, traits, types};
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
@@ -255,9 +255,9 @@ where
     orders_service_client: Option<Arc<Mutex<OrdersServiceClient<InterceptedService<Channel, I>>>>>,
 }
 
-impl TClient<TinkoffInvestInterceptor> {
+impl TClient<TInterceptor> {
     pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
-        let interceptor = TinkoffInvestInterceptor::new(token);
+        let interceptor = TInterceptor::new(token);
         TClientBuilder::new()
             .set_interceptor(Some(interceptor))
             .enable_users_service_client(true)
