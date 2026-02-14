@@ -4,7 +4,7 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::interceptor::TInterceptor;
-use crate::traits::{ToAccountId, ToOrderId};
+use crate::traits::{ToAccountIdRef, ToOrderIdRef};
 use crate::{TCallContext, TError, enums, traits, types};
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
@@ -589,8 +589,8 @@ where
             .as_ref()
             .ok_or(TError::OrdersServiceClientNotInit)?;
         let message = tinkoff_invest_types::GetOrderStateRequest {
-            account_id: ctx.to_account_id().into(),
-            order_id: ctx.to_order_id().into(),
+            account_id: ctx.to_account_id_ref().into(),
+            order_id: ctx.to_order_id_ref().into(),
             ..Default::default()
         };
         let request = Self::create_request(ctx, message);
@@ -618,7 +618,7 @@ where
             .as_ref()
             .ok_or(TError::OperationsServiceClientNotInit)?;
         let mut message = OperationsRequest {
-            account_id: ctx.to_account_id().into(),
+            account_id: ctx.to_account_id_ref().into(),
             figi: Some(instrument.to_figi().into()),
             state: Some(0),
             from,
@@ -641,7 +641,7 @@ where
         ctx: &TCallContext,
     ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
         let mut message = PortfolioRequest {
-            account_id: ctx.to_account_id().into(),
+            account_id: ctx.to_account_id_ref().into(),
             ..Default::default()
         };
         message.set_currency(CurrencyRequest::Rub);
@@ -661,7 +661,7 @@ where
 
     pub async fn positions(&self, ctx: &TCallContext) -> Result<types::Positions, Box<dyn Error>> {
         let message = PositionsRequest {
-            account_id: ctx.to_account_id().into(),
+            account_id: ctx.to_account_id_ref().into(),
         };
         let client = self
             .operations_service_client
@@ -684,8 +684,8 @@ where
         price: types::MoneyValue,
     ) -> Result<types::Order, Box<dyn Error>> {
         let mut message = PostOrderRequest {
-            order_id: ctx.to_order_id().into(),
-            account_id: ctx.to_account_id().into(),
+            order_id: ctx.to_order_id_ref().into(),
+            account_id: ctx.to_account_id_ref().into(),
             instrument_id: instrument.to_uid().into(),
             quantity: quantity as i64,
             price: Some(price.into()),
@@ -710,8 +710,8 @@ where
         ctx: &TCallContext,
     ) -> Result<Option<types::DateTime>, Box<dyn Error>> {
         let mut message = CancelOrderRequest {
-            account_id: ctx.to_account_id().into(),
-            order_id: ctx.to_order_id().into(),
+            account_id: ctx.to_account_id_ref().into(),
+            order_id: ctx.to_order_id_ref().into(),
             ..Default::default()
         };
         message.set_order_id_type(OrderIdType::Exchange);

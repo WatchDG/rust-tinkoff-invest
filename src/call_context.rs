@@ -54,11 +54,27 @@ impl traits::ToAccountId for TCallContext {
     }
 }
 
+impl traits::ToAccountIdRef for TCallContext {
+    fn to_account_id_ref(&self) -> &types::AccountId {
+        self.account_id
+            .as_ref()
+            .expect("account_id must be set in TCallContext to use ToAccountIdRef")
+    }
+}
+
 impl traits::ToOrderId for TCallContext {
     fn to_order_id(&self) -> types::OrderId {
         self.order_id
             .clone()
             .expect("order_id must be set in TCallContext to use ToOrderId")
+    }
+}
+
+impl traits::ToOrderIdRef for TCallContext {
+    fn to_order_id_ref(&self) -> &types::OrderId {
+        self.order_id
+            .as_ref()
+            .expect("order_id must be set in TCallContext to use ToOrderIdRef")
     }
 }
 
