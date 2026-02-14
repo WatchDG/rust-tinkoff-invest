@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -84,7 +83,7 @@ macro_rules! create_service_client {
             client = client.send_compressed(CompressionEncoding::Gzip);
             client = client.accept_compressed(CompressionEncoding::Gzip);
             client = client.max_decoding_message_size($max_size);
-            Some(Arc::new(Mutex::new(client)))
+            Some(client)
         } else {
             None
         }
@@ -259,19 +258,13 @@ where
 
 pub struct TClient<I>
 where
-    I: Interceptor + Send,
+    I: Interceptor + Clone + Send,
 {
-    // pub(crate) endpoint: Endpoint,
-    // pub(crate) channel: Channel,
-    // pub(crate) interceptor: I,
-    users_service_client: Option<Arc<Mutex<UsersServiceClient<InterceptedService<Channel, I>>>>>,
-    instruments_service_client:
-        Option<Arc<Mutex<InstrumentsServiceClient<InterceptedService<Channel, I>>>>>,
-    market_data_service_client:
-        Option<Arc<Mutex<MarketDataServiceClient<InterceptedService<Channel, I>>>>>,
-    operations_service_client:
-        Option<Arc<Mutex<OperationsServiceClient<InterceptedService<Channel, I>>>>>,
-    orders_service_client: Option<Arc<Mutex<OrdersServiceClient<InterceptedService<Channel, I>>>>>,
+    users_service_client: Option<UsersServiceClient<InterceptedService<Channel, I>>>,
+    instruments_service_client: Option<InstrumentsServiceClient<InterceptedService<Channel, I>>>,
+    market_data_service_client: Option<MarketDataServiceClient<InterceptedService<Channel, I>>>,
+    operations_service_client: Option<OperationsServiceClient<InterceptedService<Channel, I>>>,
+    orders_service_client: Option<OrdersServiceClient<InterceptedService<Channel, I>>>,
 }
 
 impl TClient<TInterceptor> {
@@ -291,7 +284,7 @@ impl TClient<TInterceptor> {
 
 impl<I> TClient<I>
 where
-    I: Interceptor + Send,
+    I: Interceptor + Clone + Send,
 {
     /// Создает Request с установленным x-tracking-id из TCallContext
     fn create_request<T>(ctx: &TCallContext, message: T) -> TonicRequest<T> {
@@ -317,7 +310,7 @@ where
             .ok_or(TError::UsersServiceClientNotInit)?;
         let message = GetAccountsRequest::default();
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
         Ok(accounts.into_iter().map(|v| v.into()).collect())
     }
@@ -360,7 +353,7 @@ where
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let shares = client.shares(request).await?.into_inner().instruments;
         Ok(shares.into_iter().map(|x| x.into()).collect())
     }
@@ -386,7 +379,7 @@ where
         };
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let share = client.share_by(request).await?.into_inner().instrument;
         Ok(share.map(|x| x.into()))
     }
@@ -402,7 +395,7 @@ where
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let currencies = client.currencies(request).await?.into_inner().instruments;
         Ok(currencies.into_iter().map(|v| v.into()).collect())
     }
@@ -428,7 +421,7 @@ where
         };
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let currency = client.currency_by(request).await?.into_inner().instrument;
         Ok(currency.map(|x| x.into()))
     }
@@ -444,7 +437,7 @@ where
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let futures = client.futures(request).await?.into_inner().instruments;
         Ok(futures.into_iter().map(|v| v.into()).collect())
     }
@@ -470,7 +463,7 @@ where
         };
         message.set_id_type(InstrumentIdType::Figi);
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let future = client.future_by(request).await?.into_inner().instrument;
         Ok(future.map(|x| x.into()))
     }
@@ -492,7 +485,7 @@ where
             ..Default::default()
         };
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         Ok(client
             .get_trading_status(request)
             .await?
@@ -527,7 +520,7 @@ where
             .as_ref()
             .ok_or(TError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
         Ok(candlesticks
             .into_iter()
@@ -565,7 +558,7 @@ where
             .as_ref()
             .ok_or(TError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
@@ -580,7 +573,7 @@ where
             ..Default::default()
         };
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
     }
@@ -612,7 +605,7 @@ where
         };
         message.set_state(state.into());
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let response = client.get_operations(request).await?;
         let operations = response.into_inner().operations;
         Ok(operations.into_iter().map(|x| x.into()).collect())
@@ -632,7 +625,7 @@ where
             .as_ref()
             .ok_or(TError::OperationsServiceClientNotInit)?;
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let portfolio_positions = client
             .get_portfolio(request)
             .await?
@@ -653,7 +646,7 @@ where
             .as_ref()
             .ok_or(TError::OperationsServiceClientNotInit)?;
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let response = client.get_positions(request).await?;
         let positions = response.into_inner().into();
         Ok(positions)
@@ -683,7 +676,7 @@ where
             .as_ref()
             .ok_or(TError::OrdersServiceClientNotInit)?;
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let response = client.post_order(request).await?;
         let order = response.into_inner().into();
         Ok(order)
@@ -705,7 +698,7 @@ where
             .as_ref()
             .ok_or(TError::OrdersServiceClientNotInit)?;
         let request = Self::create_request(ctx, message);
-        let mut client = client.lock().unwrap();
+        let mut client = client.clone();
         let response = client.cancel_order(request).await?;
         Ok(response.into_inner().time.map(|x| x.into()))
     }
