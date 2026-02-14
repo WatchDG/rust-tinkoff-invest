@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
 use tinkoff_invest_types as tit;
 
 use crate::{enums, types};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Candlestick {
-    pub instrument_uid: types::Uid,
-    pub interval: enums::CandlestickInterval,
+    pub instrument_uid: Arc<types::Uid>,
+    pub interval: Arc<enums::CandlestickInterval>,
     pub datetime: types::DateTime,
     pub open: Option<types::MoneyValue>,
     pub high: Option<types::MoneyValue>,
@@ -17,9 +19,9 @@ pub struct Candlestick {
 
 impl From<tit::Candle> for Candlestick {
     fn from(value: tit::Candle) -> Self {
-        let interval = value.interval().into();
+        let interval = Arc::new(value.interval().into());
         Self {
-            instrument_uid: value.instrument_uid.as_str().into(),
+            instrument_uid: Arc::new(value.instrument_uid.as_str().into()),
             interval,
             open: value.open.map(|x| x.into()),
             high: value.high.map(|x| x.into()),

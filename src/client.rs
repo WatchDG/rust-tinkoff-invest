@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -521,16 +522,15 @@ where
     where
         T: traits::ToUid,
     {
-        let uid = instrument.to_uid();
-        let uid_clone = uid.clone();
-        let interval_clone = interval.clone();
+        let uid = Arc::new(instrument.to_uid());
+        let interval = Arc::new(interval);
         let mut message = GetCandlesRequest {
-            instrument_id: Some(uid.into()),
+            instrument_id: Some((*uid).clone().into()),
             from: Some(from.into()),
             to: Some(to.into()),
             ..Default::default()
         };
-        message.set_interval(interval_clone.clone().into());
+        message.set_interval((*interval).clone().into());
         let client = self
             .market_data_service_client
             .as_ref()
@@ -542,8 +542,8 @@ where
         for x in candlesticks {
             if let Some(time) = x.time {
                 result.push(types::Candlestick {
-                    instrument_uid: uid_clone.clone(),
-                    interval: interval_clone.clone(),
+                    instrument_uid: Arc::clone(&uid),
+                    interval: Arc::clone(&interval),
                     open: x.open.map(|v| v.into()),
                     high: x.high.map(|v| v.into()),
                     low: x.low.map(|v| v.into()),
