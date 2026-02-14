@@ -191,6 +191,9 @@ where
                 .tls_config(ClientTlsConfig::new().with_native_roots())
                 .unwrap()
                 .timeout(timeout)
+                .http2_keep_alive_interval(Duration::from_secs(30))
+                .keep_alive_timeout(Duration::from_secs(10))
+                .keep_alive_while_idle(true)
         });
         let channel = endpoint.connect().await?;
         let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
