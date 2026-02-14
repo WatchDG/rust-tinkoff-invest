@@ -1,3 +1,4 @@
+mod request_id;
 mod to_account_id;
 mod to_candlestick_interval;
 mod to_class_code;
@@ -7,6 +8,7 @@ mod to_order_id;
 mod to_ticker;
 mod to_uid;
 
+pub use request_id::RequestId;
 pub use to_account_id::{ToAccountId, ToAccountIdRef};
 pub use to_candlestick_interval::ToCandlestickInterval;
 pub use to_class_code::ToClassCode;

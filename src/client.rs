@@ -4,8 +4,8 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::interceptor::TInterceptor;
-use crate::traits::{ToAccountIdRef, ToOrderIdRef};
-use crate::{TCallContext, TError, enums, traits, types};
+use crate::traits::{RequestId, ToAccountIdRef, ToOrderIdRef};
+use crate::{TError, enums, traits, types};
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
@@ -290,12 +290,14 @@ impl<I> TClient<I>
 where
     I: Interceptor + Clone + Send,
 {
-    /// Создает Request с установленным x-tracking-id из TCallContext
-    fn create_request<T>(ctx: &TCallContext, message: T) -> TonicRequest<T> {
+    /// Создает Request с установленным x-tracking-id из контекста
+    fn create_request<T, C>(ctx: &C, message: T) -> TonicRequest<T>
+    where
+        C: RequestId,
+    {
         let mut request = TonicRequest::new(message);
         let request_id_string = ctx
-            .request_id
-            .as_deref()
+            .request_id()
             .map(|s| s.to_string())
             .unwrap_or_else(|| Uuid::now_v7().to_string());
         request
@@ -304,10 +306,10 @@ where
         request
     }
 
-    pub async fn accounts(
-        &self,
-        ctx: &TCallContext,
-    ) -> Result<Vec<types::Account>, Box<dyn Error>> {
+    pub async fn accounts<C>(&self, ctx: &C) -> Result<Vec<types::Account>, Box<dyn Error>>
+    where
+        C: RequestId,
+    {
         let client = self
             .users_service_client
             .as_ref()
@@ -323,11 +325,14 @@ where
         Ok(result)
     }
 
-    pub async fn market_instruments(
+    pub async fn market_instruments<C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument_type: enums::InstrumentType,
-    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    where
+        C: RequestId,
+    {
         match instrument_type {
             enums::InstrumentType::Share => self.shares(ctx).await,
             enums::InstrumentType::Currency => self.currencies(ctx).await,
@@ -335,13 +340,14 @@ where
         }
     }
 
-    pub async fn market_instrument<T>(
+    pub async fn market_instrument<T, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         match instrument.to_instrument_type() {
             enums::InstrumentType::Share => self.share(ctx, instrument).await,
@@ -350,10 +356,10 @@ where
         }
     }
 
-    pub async fn shares(
-        &self,
-        ctx: &TCallContext,
-    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+    pub async fn shares<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    where
+        C: RequestId,
+    {
         let client = self
             .instruments_service_client
             .as_ref()
@@ -370,13 +376,14 @@ where
         Ok(result)
     }
 
-    pub async fn share<T>(
+    pub async fn share<T, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Share {
             return Err(TError::MarketInstrumentTypeNotShare.into());
@@ -396,10 +403,13 @@ where
         Ok(share.map(|x| x.into()))
     }
 
-    pub async fn currencies(
+    pub async fn currencies<C>(
         &self,
-        ctx: &TCallContext,
-    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+        ctx: &C,
+    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    where
+        C: RequestId,
+    {
         let client = self
             .instruments_service_client
             .as_ref()
@@ -416,13 +426,14 @@ where
         Ok(result)
     }
 
-    pub async fn currency<T>(
+    pub async fn currency<T, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Currency {
             return Err(TError::MarketInstrumentTypeNotCurrency.into());
@@ -442,10 +453,10 @@ where
         Ok(currency.map(|x| x.into()))
     }
 
-    pub async fn futures(
-        &self,
-        ctx: &TCallContext,
-    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+    pub async fn futures<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    where
+        C: RequestId,
+    {
         let client = self
             .instruments_service_client
             .as_ref()
@@ -462,13 +473,14 @@ where
         Ok(result)
     }
 
-    pub async fn future<T>(
+    pub async fn future<T, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: T,
     ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Future {
             return Err(TError::MarketInstrumentTypeNotFuture.into());
@@ -488,13 +500,14 @@ where
         Ok(future.map(|x| x.into()))
     }
 
-    pub async fn trading_status<T>(
+    pub async fn trading_status<T, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: T,
     ) -> Result<enums::TradingStatus, Box<dyn Error>>
     where
         T: traits::ToUid,
+        C: RequestId,
     {
         let client = self
             .market_data_service_client
@@ -514,9 +527,9 @@ where
             .into())
     }
 
-    pub async fn candlesticks<T>(
+    pub async fn candlesticks<T, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: T,
         interval: enums::CandlestickInterval,
         from: types::DateTime,
@@ -524,6 +537,7 @@ where
     ) -> Result<Vec<types::Candlestick>, Box<dyn Error>>
     where
         T: traits::ToUid,
+        C: RequestId,
     {
         let uid = Arc::new(instrument.to_uid());
         let interval = Arc::new(interval);
@@ -560,14 +574,15 @@ where
         Ok(result)
     }
 
-    pub async fn orderbook<T>(
+    pub async fn orderbook<T, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: T,
         depth: usize,
     ) -> Result<types::OrderBook, Box<dyn Error>>
     where
         T: traits::ToUid,
+        C: RequestId,
     {
         let message = GetOrderBookRequest {
             depth: depth as i32,
@@ -583,7 +598,10 @@ where
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
-    pub async fn order(&self, ctx: &TCallContext) -> Result<types::Order, Box<dyn Error>> {
+    pub async fn order<C>(&self, ctx: &C) -> Result<types::Order, Box<dyn Error>>
+    where
+        C: RequestId + ToAccountIdRef + ToOrderIdRef,
+    {
         let client = self
             .orders_service_client
             .as_ref()
@@ -600,9 +618,9 @@ where
     }
 
     #[inline]
-    pub async fn operations<K>(
+    pub async fn operations<K, C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: K,
         state: enums::OperationState,
         from: types::DateTime,
@@ -610,6 +628,7 @@ where
     ) -> Result<Vec<types::Operation>, Box<dyn Error>>
     where
         K: traits::ToFigi,
+        C: RequestId + ToAccountIdRef,
     {
         let from = Some(from.into());
         let to = Some(to.into());
@@ -636,10 +655,13 @@ where
         Ok(result)
     }
 
-    pub async fn portfolio(
+    pub async fn portfolio<C>(
         &self,
-        ctx: &TCallContext,
-    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
+        ctx: &C,
+    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>>
+    where
+        C: RequestId + ToAccountIdRef,
+    {
         let mut message = PortfolioRequest {
             account_id: ctx.to_account_id_ref().into(),
             ..Default::default()
@@ -659,7 +681,10 @@ where
         Ok(result)
     }
 
-    pub async fn positions(&self, ctx: &TCallContext) -> Result<types::Positions, Box<dyn Error>> {
+    pub async fn positions<C>(&self, ctx: &C) -> Result<types::Positions, Box<dyn Error>>
+    where
+        C: RequestId + ToAccountIdRef,
+    {
         let message = PositionsRequest {
             account_id: ctx.to_account_id_ref().into(),
         };
@@ -675,14 +700,17 @@ where
     }
 
     #[inline]
-    pub async fn limit_order(
+    pub async fn limit_order<C>(
         &self,
-        ctx: &TCallContext,
+        ctx: &C,
         instrument: impl traits::ToUid,
         direction: enums::OrderDirection,
         quantity: u64,
         price: types::MoneyValue,
-    ) -> Result<types::Order, Box<dyn Error>> {
+    ) -> Result<types::Order, Box<dyn Error>>
+    where
+        C: RequestId + ToAccountIdRef + ToOrderIdRef,
+    {
         let mut message = PostOrderRequest {
             order_id: ctx.to_order_id_ref().into(),
             account_id: ctx.to_account_id_ref().into(),
@@ -705,10 +733,10 @@ where
     }
 
     #[inline]
-    pub async fn cancel_order(
-        &self,
-        ctx: &TCallContext,
-    ) -> Result<Option<types::DateTime>, Box<dyn Error>> {
+    pub async fn cancel_order<C>(&self, ctx: &C) -> Result<Option<types::DateTime>, Box<dyn Error>>
+    where
+        C: RequestId + ToAccountIdRef + ToOrderIdRef,
+    {
         let mut message = CancelOrderRequest {
             account_id: ctx.to_account_id_ref().into(),
             order_id: ctx.to_order_id_ref().into(),

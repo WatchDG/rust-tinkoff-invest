@@ -8,7 +8,7 @@ pub mod interceptor;
 pub mod traits;
 pub mod types;
 
-pub use call_context::TCallContext;
+pub use call_context::{TAccountContext, TCallContext, TOrderContext, TRequestContext};
 pub use client::{TClient, TClientBuilder};
 pub use error::TError;
 
