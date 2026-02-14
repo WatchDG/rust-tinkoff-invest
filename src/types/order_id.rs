@@ -12,13 +12,3 @@ impl From<String> for OrderId {
         Self(value)
     }
 }
-
-#[cfg(feature = "lull")]
-pub use lull_spec;
-
-#[cfg(feature = "lull")]
-impl lull_spec::ReadOrderIdInnerRef<String> for OrderId {
-    fn read_order_id_inner_ref(&self) -> &String {
-        &self.0
-    }
-}

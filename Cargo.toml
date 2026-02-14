@@ -17,14 +17,11 @@ exclude = [
 ]
 
 [features]
-default = []
-lull = ["dep:lull-spec"]
 
 [dependencies]
 tonic = { version = "0.14", features = ["tls-ring", "tls-native-roots", "gzip"] }
-lull-spec = { git = "https://github.com/WatchDG/rust-lull-spec", branch = "feature/next", optional = true }
 tinkoff-invest-types = { version = "2.23" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 tokio-stream = { version = "0.1" }
-uuid = { version = "1", features = ["v7"] }
+uuid = { version = "1.21", features = ["v7"] }
 chrono = { version = "0.4" }
