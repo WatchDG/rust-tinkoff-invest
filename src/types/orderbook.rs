@@ -26,8 +26,14 @@ pub struct OrderBook {
 
 impl From<tit::GetOrderBookResponse> for OrderBook {
     fn from(value: tit::GetOrderBookResponse) -> Self {
-        let bid_orders = value.bids.iter().map(|&x| x.into()).collect();
-        let ask_orders = value.asks.iter().map(|&x| x.into()).collect();
+        let mut bid_orders = Vec::with_capacity(value.bids.len());
+        for x in &value.bids {
+            bid_orders.push((*x).into());
+        }
+        let mut ask_orders = Vec::with_capacity(value.asks.len());
+        for x in &value.asks {
+            ask_orders.push((*x).into());
+        }
         Self {
             // figi: value.figi.into(),
             instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
@@ -45,8 +51,14 @@ impl From<tit::GetOrderBookResponse> for OrderBook {
 
 impl From<tit::OrderBook> for OrderBook {
     fn from(value: tit::OrderBook) -> Self {
-        let bid_orders = value.bids.iter().map(|&x| x.into()).collect();
-        let ask_orders = value.asks.iter().map(|&x| x.into()).collect();
+        let mut bid_orders = Vec::with_capacity(value.bids.len());
+        for x in &value.bids {
+            bid_orders.push((*x).into());
+        }
+        let mut ask_orders = Vec::with_capacity(value.asks.len());
+        for x in &value.asks {
+            ask_orders.push((*x).into());
+        }
         Self {
             instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
             depth: value.depth as u32,

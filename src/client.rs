@@ -312,7 +312,11 @@ where
         let request = Self::create_request(ctx, message);
         let mut client = client.clone();
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
-        Ok(accounts.into_iter().map(|v| v.into()).collect())
+        let mut result = Vec::with_capacity(accounts.len());
+        for v in accounts {
+            result.push(v.into());
+        }
+        Ok(result)
     }
 
     pub async fn market_instruments(
@@ -355,7 +359,11 @@ where
         let request = Self::create_request(ctx, message);
         let mut client = client.clone();
         let shares = client.shares(request).await?.into_inner().instruments;
-        Ok(shares.into_iter().map(|x| x.into()).collect())
+        let mut result = Vec::with_capacity(shares.len());
+        for x in shares {
+            result.push(x.into());
+        }
+        Ok(result)
     }
 
     pub async fn share<T>(
@@ -397,7 +405,11 @@ where
         let request = Self::create_request(ctx, message);
         let mut client = client.clone();
         let currencies = client.currencies(request).await?.into_inner().instruments;
-        Ok(currencies.into_iter().map(|v| v.into()).collect())
+        let mut result = Vec::with_capacity(currencies.len());
+        for v in currencies {
+            result.push(v.into());
+        }
+        Ok(result)
     }
 
     pub async fn currency<T>(
@@ -439,7 +451,11 @@ where
         let request = Self::create_request(ctx, message);
         let mut client = client.clone();
         let futures = client.futures(request).await?.into_inner().instruments;
-        Ok(futures.into_iter().map(|v| v.into()).collect())
+        let mut result = Vec::with_capacity(futures.len());
+        for v in futures {
+            result.push(v.into());
+        }
+        Ok(result)
     }
 
     pub async fn future<T>(
@@ -522,21 +538,23 @@ where
         let request = Self::create_request(ctx, message);
         let mut client = client.clone();
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
-        Ok(candlesticks
-            .into_iter()
-            .filter(|x| x.time.is_some())
-            .map(|x| types::Candlestick {
-                instrument_uid: uid_clone.clone(),
-                interval: interval_clone.clone(),
-                open: x.open.map(|v| v.into()),
-                high: x.high.map(|v| v.into()),
-                low: x.low.map(|v| v.into()),
-                close: x.close.map(|v| v.into()),
-                volume: x.volume as u64,
-                datetime: x.time.unwrap().into(),
-                is_complete: x.is_complete,
-            })
-            .collect())
+        let mut result = Vec::with_capacity(candlesticks.len());
+        for x in candlesticks {
+            if let Some(time) = x.time {
+                result.push(types::Candlestick {
+                    instrument_uid: uid_clone.clone(),
+                    interval: interval_clone.clone(),
+                    open: x.open.map(|v| v.into()),
+                    high: x.high.map(|v| v.into()),
+                    low: x.low.map(|v| v.into()),
+                    close: x.close.map(|v| v.into()),
+                    volume: x.volume as u64,
+                    datetime: time.into(),
+                    is_complete: x.is_complete,
+                });
+            }
+        }
+        Ok(result)
     }
 
     pub async fn orderbook<T>(
@@ -608,7 +626,11 @@ where
         let mut client = client.clone();
         let response = client.get_operations(request).await?;
         let operations = response.into_inner().operations;
-        Ok(operations.into_iter().map(|x| x.into()).collect())
+        let mut result = Vec::with_capacity(operations.len());
+        for x in operations {
+            result.push(x.into());
+        }
+        Ok(result)
     }
 
     pub async fn portfolio(
@@ -626,15 +648,12 @@ where
             .ok_or(TError::OperationsServiceClientNotInit)?;
         let request = Self::create_request(ctx, message);
         let mut client = client.clone();
-        let portfolio_positions = client
-            .get_portfolio(request)
-            .await?
-            .into_inner()
-            .positions
-            .iter()
-            .map(|x| x.into())
-            .collect();
-        Ok(portfolio_positions)
+        let positions = client.get_portfolio(request).await?.into_inner().positions;
+        let mut result = Vec::with_capacity(positions.len());
+        for x in &positions {
+            result.push(x.into());
+        }
+        Ok(result)
     }
 
     pub async fn positions(&self, ctx: &TCallContext) -> Result<types::Positions, Box<dyn Error>> {

@@ -50,7 +50,13 @@ impl From<tit::Operation> for Operation {
             lots: value.quantity as u64,
             lots_rest: value.quantity_rest as u64,
             operation_type,
-            trades: value.trades.iter().map(|x| x.clone().into()).collect(),
+            trades: {
+                let mut trades = Vec::with_capacity(value.trades.len());
+                for x in &value.trades {
+                    trades.push(x.clone().into());
+                }
+                trades
+            },
             datetime: value.date.map(|x| x.into()),
         }
     }
