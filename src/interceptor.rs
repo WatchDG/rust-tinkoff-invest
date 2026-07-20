@@ -4,16 +4,21 @@ use tonic::{
     service::Interceptor,
 };
 
+use crate::TError;
+
+/// Interceptor, добавляющий Bearer-токен в metadata каждого запроса.
 #[derive(Debug, Clone)]
 pub struct TInterceptor {
     authorization: MetadataValue<Ascii>,
 }
 
 impl TInterceptor {
-    #[inline]
-    pub fn new(token: String) -> Self {
-        let authorization = format!("bearer {}", token).parse().unwrap();
-        Self { authorization }
+    /// Создаёт interceptor из токена Invest API.
+    pub fn new(token: impl AsRef<str>) -> Result<Self, TError> {
+        let authorization = format!("bearer {}", token.as_ref())
+            .parse()
+            .map_err(|e| TError::InvalidToken(format!("{e}")))?;
+        Ok(Self { authorization })
     }
 }
 

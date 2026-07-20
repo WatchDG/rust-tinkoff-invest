@@ -26,3 +26,21 @@ impl From<tit::AccountType> for AccountType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_proto_variants() {
+        assert_eq!(
+            AccountType::from(tit::AccountType::Tinkoff),
+            AccountType::Tinkoff
+        );
+        assert_eq!(AccountType::from(tit::AccountType::Dfa), AccountType::Dfa);
+        assert_eq!(
+            AccountType::from(tit::AccountType::Saving),
+            AccountType::Saving
+        );
+    }
+}

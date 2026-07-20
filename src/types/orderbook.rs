@@ -36,7 +36,7 @@ impl From<tit::GetOrderBookResponse> for OrderBook {
         }
         Self {
             // figi: value.figi.into(),
-            instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
+            instrument_uid: types::Uid::from_api_str(value.instrument_uid.as_str()),
             depth: value.depth as u32,
             bid_orders,
             ask_orders,
@@ -60,7 +60,7 @@ impl From<tit::OrderBook> for OrderBook {
             ask_orders.push((*x).into());
         }
         Self {
-            instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
+            instrument_uid: types::Uid::from_api_str(value.instrument_uid.as_str()),
             depth: value.depth as u32,
             bid_orders,
             ask_orders,

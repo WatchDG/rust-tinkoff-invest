@@ -78,3 +78,21 @@ impl From<tinkoff_invest_types::SecurityTradingStatus> for TradingStatus {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tinkoff_invest_types::SecurityTradingStatus;
+
+    #[test]
+    fn from_proto_variants() {
+        assert_eq!(
+            TradingStatus::from(SecurityTradingStatus::NormalTrading),
+            TradingStatus::NormalTrading
+        );
+        assert_eq!(
+            TradingStatus::from(SecurityTradingStatus::StabilizationAuction),
+            TradingStatus::StabilizationAuction
+        );
+    }
+}

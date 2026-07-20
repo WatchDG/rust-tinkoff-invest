@@ -21,7 +21,7 @@ impl From<tit::Candle> for Candlestick {
     fn from(value: tit::Candle) -> Self {
         let interval = Arc::new(value.interval().into());
         Self {
-            instrument_uid: Arc::new(value.instrument_uid.as_str().into()),
+            instrument_uid: Arc::new(types::Uid::from_api_str(value.instrument_uid.as_str())),
             interval,
             open: value.open.map(|x| x.into()),
             high: value.high.map(|x| x.into()),

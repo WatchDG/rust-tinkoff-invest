@@ -1,8 +1,10 @@
 use std::ops::Add;
 use tinkoff_invest_types as tit;
 
+use crate::TError;
 use crate::enums;
 
+/// Денежное значение в формате units + nano (1 unit = 10^9 nano).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MoneyValue {
     pub units: i64,
@@ -10,9 +12,41 @@ pub struct MoneyValue {
 }
 
 impl MoneyValue {
+    /// Нормализует nano в диапазон `(-1e9, 1e9)` с переносом в units.
+    pub fn normalize(mut self) -> Self {
+        const NANO: i32 = 1_000_000_000;
+        if self.nano >= NANO || self.nano <= -NANO {
+            let carry = self.nano / NANO;
+            self.units += i64::from(carry);
+            self.nano -= carry * NANO;
+        }
+        if self.units > 0 && self.nano < 0 {
+            self.units -= 1;
+            self.nano += NANO;
+        } else if self.units < 0 && self.nano > 0 {
+            self.units += 1;
+            self.nano -= NANO;
+        }
+        self
+    }
+
     #[inline]
     pub fn as_f64(&self) -> f64 {
         (self.units as f64 * 1e9 + self.nano as f64) / 1e9
+    }
+
+    /// Преобразует `f64` в `MoneyValue`.
+    ///
+    /// Возвращает ошибку для NaN и бесконечностей.
+    pub fn try_from_f64(value: f64) -> Result<Self, TError> {
+        if !value.is_finite() {
+            return Err(TError::InvalidMoneyValue(format!(
+                "value must be finite, got {value}"
+            )));
+        }
+        let units = value.trunc() as i64;
+        let nano = ((value - value.trunc()) * 1e9).round() as i32;
+        Ok(Self { units, nano }.normalize())
     }
 }
 
@@ -48,15 +82,6 @@ impl From<i64> for MoneyValue {
     }
 }
 
-impl From<f64> for MoneyValue {
-    fn from(v: f64) -> Self {
-        MoneyValue {
-            units: v.trunc() as i64,
-            nano: ((v * 1e10 - v.trunc() * 1e10) / 10f64) as i32,
-        }
-    }
-}
-
 impl From<tit::Quotation> for MoneyValue {
     fn from(value: tit::Quotation) -> Self {
         MoneyValue {
@@ -84,10 +109,11 @@ impl From<MoneyValue> for tit::Quotation {
     }
 }
 
+/// Деньги с валютой.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Money {
     pub value: MoneyValue,
-    /// Валюта
+    /// Валюта.
     pub currency: enums::Currency,
 }
 
@@ -124,6 +150,7 @@ impl From<&tit::MoneyValue> for Money {
 
 #[cfg(test)]
 mod tests {
+    use crate::TError;
     use crate::types::MoneyValue;
 
     #[test]
@@ -199,5 +226,37 @@ mod tests {
         let c = a + b;
         assert_eq!(c.units, 0);
         assert_eq!(c.nano, -800_000_000);
+    }
+
+    #[test]
+    fn try_from_f64_ok() {
+        let v = MoneyValue::try_from_f64(12.345678901).unwrap();
+        assert_eq!(v.units, 12);
+        assert_eq!(v.nano, 345_678_901);
+        assert!((v.as_f64() - 12.345678901).abs() < 1e-9);
+    }
+
+    #[test]
+    fn try_from_f64_negative() {
+        let v = MoneyValue::try_from_f64(-1.5).unwrap();
+        assert_eq!(v.units, -1);
+        assert_eq!(v.nano, -500_000_000);
+    }
+
+    #[test]
+    fn try_from_f64_rejects_nan() {
+        let err = MoneyValue::try_from_f64(f64::NAN).unwrap_err();
+        assert!(matches!(err, TError::InvalidMoneyValue(_)));
+    }
+
+    #[test]
+    fn normalize_carry() {
+        let v = MoneyValue {
+            units: 0,
+            nano: 1_500_000_000,
+        }
+        .normalize();
+        assert_eq!(v.units, 1);
+        assert_eq!(v.nano, 500_000_000);
     }
 }

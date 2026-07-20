@@ -31,7 +31,7 @@ impl From<tit::Currency> for MarketInstrument {
     fn from(value: tit::Currency) -> Self {
         let trading_status = value.trading_status().into();
         Self {
-            uid: value.uid.as_str().into(),
+            uid: types::Uid::from_api_str(value.uid.as_str()),
             figi: Some(value.figi.into()),
             isin: Some(value.isin.into()),
             ticker: value.ticker.into(),
@@ -78,7 +78,7 @@ impl From<tit::Share> for MarketInstrument {
         //     None
         // };
         Self {
-            uid: value.uid.as_str().into(),
+            uid: types::Uid::from_api_str(value.uid.as_str()),
             figi: Some(value.figi.into()),
             isin: Some(value.isin.into()),
             ticker: value.ticker.into(),
@@ -125,7 +125,7 @@ impl From<tit::Future> for MarketInstrument {
         //     None
         // };
         Self {
-            uid: value.uid.as_str().into(),
+            uid: types::Uid::from_api_str(value.uid.as_str()),
             figi: Some(value.figi.into()),
             isin: None,
             ticker: value.ticker.into(),
@@ -154,7 +154,7 @@ impl From<tit::Option> for MarketInstrument {
     fn from(value: tit::Option) -> Self {
         let trading_status = value.trading_status().into();
         Self {
-            uid: value.uid.as_str().into(),
+            uid: types::Uid::from_api_str(value.uid.as_str()),
             figi: None,
             isin: None,
             ticker: value.ticker.into(),

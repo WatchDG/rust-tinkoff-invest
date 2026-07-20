@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
@@ -23,7 +22,7 @@ use tonic::{
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
-/// Флаги для включения сервисных клиентов в TClientBuilder
+/// Флаги для включения сервисных клиентов в [`TClientBuilder`].
 #[derive(Clone, Copy, Default)]
 pub struct TClientBuilderFlags(u8);
 
@@ -91,6 +90,9 @@ macro_rules! create_service_client {
     }};
 }
 
+/// Builder для [`TClient`].
+///
+/// Позволяет выбрать endpoint, interceptor, таймаут и набор gRPC-сервисов.
 pub struct TClientBuilder<I>
 where
     I: Interceptor + Clone + Send,
@@ -181,20 +183,22 @@ where
     }
 
     #[inline]
-    pub async fn build(self) -> Result<TClient<I>, Box<dyn Error>> {
+    pub async fn build(self) -> Result<TClient<I>, TError> {
         let timeout = self.timeout.unwrap_or(Self::DEFAULT_TIMEOUT);
         let max_decoding_message_size = self
             .max_decoding_message_size
             .unwrap_or(Self::DEFAULT_MAX_DECODING_MESSAGE_SIZE);
-        let endpoint = self.endpoint.unwrap_or_else(|| {
+        let endpoint = if let Some(endpoint) = self.endpoint {
+            endpoint
+        } else {
             Channel::from_static(Self::DEFAULT_ENDPOINT)
                 .tls_config(ClientTlsConfig::new().with_native_roots())
-                .unwrap()
+                .map_err(|e| TError::TlsConfig(e.to_string()))?
                 .timeout(timeout)
                 .http2_keep_alive_interval(Duration::from_secs(30))
                 .keep_alive_timeout(Duration::from_secs(10))
                 .keep_alive_while_idle(true)
-        });
+        };
         let channel = endpoint.connect().await?;
         let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
 
@@ -239,9 +243,6 @@ where
         );
 
         Ok(TClient {
-            // endpoint,
-            // channel,
-            // interceptor,
             users_service_client,
             instruments_service_client,
             market_data_service_client,
@@ -260,6 +261,9 @@ where
     }
 }
 
+/// Клиент Tinkoff Invest API.
+///
+/// Создаётся через [`TClient::new`] или [`TClientBuilder`].
 pub struct TClient<I>
 where
     I: Interceptor + Clone + Send,
@@ -272,15 +276,16 @@ where
 }
 
 impl TClient<TInterceptor> {
-    pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
-        let interceptor = TInterceptor::new(token);
+    /// Создаёт клиент со всеми сервисами, включёнными через Cargo features.
+    pub async fn new(token: String) -> Result<Self, TError> {
+        let interceptor = TInterceptor::new(token)?;
         TClientBuilder::new()
             .set_interceptor(Some(interceptor))
-            .enable_users_service_client(true)
-            .enable_instruments_service_client(true)
-            .enable_market_data_service_client(true)
-            .enable_operations_service_client(true)
-            .enable_orders_service_client(true)
+            .enable_users_service_client(cfg!(feature = "users"))
+            .enable_instruments_service_client(cfg!(feature = "instruments"))
+            .enable_market_data_service_client(cfg!(feature = "market-data"))
+            .enable_operations_service_client(cfg!(feature = "operations"))
+            .enable_orders_service_client(cfg!(feature = "orders"))
             .build()
             .await
     }
@@ -290,8 +295,8 @@ impl<I> TClient<I>
 where
     I: Interceptor + Clone + Send,
 {
-    /// Создает Request с установленным x-tracking-id из контекста
-    fn create_request<T, C>(ctx: &C, message: T) -> TonicRequest<T>
+    /// Создаёт Request с установленным `x-tracking-id` из контекста.
+    fn create_request<T, C>(ctx: &C, message: T) -> Result<TonicRequest<T>, TError>
     where
         C: RequestId,
     {
@@ -300,13 +305,14 @@ where
             .request_id()
             .map(|s| s.to_string())
             .unwrap_or_else(|| Uuid::now_v7().to_string());
-        request
-            .metadata_mut()
-            .insert("x-tracking-id", request_id_string.parse().unwrap());
-        request
+        let tracking_id = request_id_string
+            .parse()
+            .map_err(|e| TError::InvalidMetadata(format!("x-tracking-id: {e}")))?;
+        request.metadata_mut().insert("x-tracking-id", tracking_id);
+        Ok(request)
     }
 
-    pub async fn accounts<C>(&self, ctx: &C) -> Result<Vec<types::Account>, Box<dyn Error>>
+    pub async fn accounts<C>(&self, ctx: &C) -> Result<Vec<types::Account>, TError>
     where
         C: RequestId,
     {
@@ -315,7 +321,7 @@ where
             .as_ref()
             .ok_or(TError::UsersServiceClientNotInit)?;
         let message = GetAccountsRequest::default();
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
         let mut result = Vec::with_capacity(accounts.len());
@@ -329,7 +335,7 @@ where
         &self,
         ctx: &C,
         instrument_type: enums::InstrumentType,
-    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Vec<types::MarketInstrument>, TError>
     where
         C: RequestId,
     {
@@ -344,7 +350,7 @@ where
         &self,
         ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
         C: RequestId,
@@ -356,7 +362,7 @@ where
         }
     }
 
-    pub async fn shares<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    pub async fn shares<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
     where
         C: RequestId,
     {
@@ -366,7 +372,7 @@ where
             .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let shares = client.shares(request).await?.into_inner().instruments;
         let mut result = Vec::with_capacity(shares.len());
@@ -380,13 +386,13 @@ where
         &self,
         ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
         C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Share {
-            return Err(TError::MarketInstrumentTypeNotShare.into());
+            return Err(TError::MarketInstrumentTypeNotShare);
         }
         let client = self
             .instruments_service_client
@@ -397,16 +403,13 @@ where
             ..Default::default()
         };
         message.set_id_type(InstrumentIdType::Figi);
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let share = client.share_by(request).await?.into_inner().instrument;
         Ok(share.map(|x| x.into()))
     }
 
-    pub async fn currencies<C>(
-        &self,
-        ctx: &C,
-    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    pub async fn currencies<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
     where
         C: RequestId,
     {
@@ -416,7 +419,7 @@ where
             .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let currencies = client.currencies(request).await?.into_inner().instruments;
         let mut result = Vec::with_capacity(currencies.len());
@@ -430,13 +433,13 @@ where
         &self,
         ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
         C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Currency {
-            return Err(TError::MarketInstrumentTypeNotCurrency.into());
+            return Err(TError::MarketInstrumentTypeNotCurrency);
         }
         let client = self
             .instruments_service_client
@@ -447,13 +450,13 @@ where
             ..Default::default()
         };
         message.set_id_type(InstrumentIdType::Figi);
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let currency = client.currency_by(request).await?.into_inner().instrument;
         Ok(currency.map(|x| x.into()))
     }
 
-    pub async fn futures<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>>
+    pub async fn futures<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
     where
         C: RequestId,
     {
@@ -463,7 +466,7 @@ where
             .ok_or(TError::InstrumentsServiceClientNotInit)?;
         let mut message = InstrumentsRequest::default();
         message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let futures = client.futures(request).await?.into_inner().instruments;
         let mut result = Vec::with_capacity(futures.len());
@@ -477,13 +480,13 @@ where
         &self,
         ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
         C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Future {
-            return Err(TError::MarketInstrumentTypeNotFuture.into());
+            return Err(TError::MarketInstrumentTypeNotFuture);
         }
         let client = self
             .instruments_service_client
@@ -494,7 +497,7 @@ where
             ..Default::default()
         };
         message.set_id_type(InstrumentIdType::Figi);
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let future = client.future_by(request).await?.into_inner().instrument;
         Ok(future.map(|x| x.into()))
@@ -504,7 +507,7 @@ where
         &self,
         ctx: &C,
         instrument: T,
-    ) -> Result<enums::TradingStatus, Box<dyn Error>>
+    ) -> Result<enums::TradingStatus, TError>
     where
         T: traits::ToUid,
         C: RequestId,
@@ -517,7 +520,7 @@ where
             instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         Ok(client
             .get_trading_status(request)
@@ -534,7 +537,7 @@ where
         interval: enums::CandlestickInterval,
         from: types::DateTime,
         to: types::DateTime,
-    ) -> Result<Vec<types::Candlestick>, Box<dyn Error>>
+    ) -> Result<Vec<types::Candlestick>, TError>
     where
         T: traits::ToUid,
         C: RequestId,
@@ -552,7 +555,7 @@ where
             .market_data_service_client
             .as_ref()
             .ok_or(TError::MarketDataServiceClientNotInit)?;
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
         let mut result = Vec::with_capacity(candlesticks.len());
@@ -579,7 +582,7 @@ where
         ctx: &C,
         instrument: T,
         depth: usize,
-    ) -> Result<types::OrderBook, Box<dyn Error>>
+    ) -> Result<types::OrderBook, TError>
     where
         T: traits::ToUid,
         C: RequestId,
@@ -593,12 +596,12 @@ where
             .market_data_service_client
             .as_ref()
             .ok_or(TError::MarketDataServiceClientNotInit)?;
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
-    pub async fn order<C>(&self, ctx: &C) -> Result<types::Order, Box<dyn Error>>
+    pub async fn order<C>(&self, ctx: &C) -> Result<types::Order, TError>
     where
         C: RequestId + ToAccountIdRef + ToOrderIdRef,
     {
@@ -611,7 +614,7 @@ where
             order_id: ctx.to_order_id_ref().into(),
             ..Default::default()
         };
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
@@ -625,7 +628,7 @@ where
         state: enums::OperationState,
         from: types::DateTime,
         to: types::DateTime,
-    ) -> Result<Vec<types::Operation>, Box<dyn Error>>
+    ) -> Result<Vec<types::Operation>, TError>
     where
         K: traits::ToFigi,
         C: RequestId + ToAccountIdRef,
@@ -644,7 +647,7 @@ where
             to,
         };
         message.set_state(state.into());
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let response = client.get_operations(request).await?;
         let operations = response.into_inner().operations;
@@ -655,10 +658,7 @@ where
         Ok(result)
     }
 
-    pub async fn portfolio<C>(
-        &self,
-        ctx: &C,
-    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>>
+    pub async fn portfolio<C>(&self, ctx: &C) -> Result<Vec<types::PortfolioPosition>, TError>
     where
         C: RequestId + ToAccountIdRef,
     {
@@ -671,7 +671,7 @@ where
             .operations_service_client
             .as_ref()
             .ok_or(TError::OperationsServiceClientNotInit)?;
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let positions = client.get_portfolio(request).await?.into_inner().positions;
         let mut result = Vec::with_capacity(positions.len());
@@ -681,7 +681,7 @@ where
         Ok(result)
     }
 
-    pub async fn positions<C>(&self, ctx: &C) -> Result<types::Positions, Box<dyn Error>>
+    pub async fn positions<C>(&self, ctx: &C) -> Result<types::Positions, TError>
     where
         C: RequestId + ToAccountIdRef,
     {
@@ -692,7 +692,7 @@ where
             .operations_service_client
             .as_ref()
             .ok_or(TError::OperationsServiceClientNotInit)?;
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let response = client.get_positions(request).await?;
         let positions = response.into_inner().into();
@@ -707,7 +707,7 @@ where
         direction: enums::OrderDirection,
         quantity: u64,
         price: types::MoneyValue,
-    ) -> Result<types::Order, Box<dyn Error>>
+    ) -> Result<types::Order, TError>
     where
         C: RequestId + ToAccountIdRef + ToOrderIdRef,
     {
@@ -725,7 +725,7 @@ where
             .orders_service_client
             .as_ref()
             .ok_or(TError::OrdersServiceClientNotInit)?;
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let response = client.post_order(request).await?;
         let order = response.into_inner().into();
@@ -733,7 +733,7 @@ where
     }
 
     #[inline]
-    pub async fn cancel_order<C>(&self, ctx: &C) -> Result<Option<types::DateTime>, Box<dyn Error>>
+    pub async fn cancel_order<C>(&self, ctx: &C) -> Result<Option<types::DateTime>, TError>
     where
         C: RequestId + ToAccountIdRef + ToOrderIdRef,
     {
@@ -747,7 +747,7 @@ where
             .orders_service_client
             .as_ref()
             .ok_or(TError::OrdersServiceClientNotInit)?;
-        let request = Self::create_request(ctx, message);
+        let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let response = client.cancel_order(request).await?;
         Ok(response.into_inner().time.map(|x| x.into()))
