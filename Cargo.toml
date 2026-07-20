@@ -23,8 +23,7 @@ instruments = []
 market-data = []
 operations = []
 orders = []
-# Зарезервировано под стриминговые сервисы.
-streams = []
+streams = ["tokio/sync", "dep:tokio-stream"]
 # Включает интеграционные тесты (нужен TINKOFF_INVEST_TOKEN).
 integration-tests = []
 
@@ -32,8 +31,13 @@ integration-tests = []
 tonic = { version = "0.14", features = ["tls-ring", "tls-native-roots", "gzip"] }
 tinkoff-invest-types = { version = "2.25" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
+tokio-stream = { version = "0.1", optional = true }
 uuid = { version = "1.24", features = ["v7"] }
 chrono = { version = "0.4" }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+
+[[example]]
+name = "market_data_stream"
+required-features = ["streams"]

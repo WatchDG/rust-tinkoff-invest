@@ -36,6 +36,7 @@ async fn main() -> Result<(), tinkoff_invest::TError> {
 cargo run --example accounts
 cargo run --example candles
 cargo run --example limit_order
+cargo run --example market_data_stream --features streams
 ```
 
 ## Features
@@ -47,7 +48,7 @@ cargo run --example limit_order
 | `market-data` | да | MarketDataService |
 | `operations` | да | OperationsService |
 | `orders` | да | OrdersService |
-| `streams` | нет | зарезервировано |
+| `streams` | нет | MarketDataStream (bidirectional session) |
 | `integration-tests` | нет | интеграционные тесты |
 
 ## License

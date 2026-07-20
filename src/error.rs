@@ -47,6 +47,8 @@ pub enum TError {
     InvalidMoneyValue(String),
     /// Ошибка конфигурации TLS.
     TlsConfig(String),
+    /// Стрим закрыт (канал команд/событий или gRPC-соединение).
+    StreamClosed,
 }
 
 impl Display for TError {
@@ -110,6 +112,7 @@ impl Display for TError {
             TError::InvalidMetadata(message) => write!(f, "Invalid metadata: {message}"),
             TError::InvalidMoneyValue(message) => write!(f, "Invalid money value: {message}"),
             TError::TlsConfig(message) => write!(f, "TLS config error: {message}"),
+            TError::StreamClosed => write!(f, "Stream closed"),
         }
     }
 }

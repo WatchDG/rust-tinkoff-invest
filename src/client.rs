@@ -5,6 +5,8 @@ use uuid::Uuid;
 use crate::interceptor::TInterceptor;
 use crate::traits::{RequestId, ToAccountIdRef, ToOrderIdRef};
 use crate::{TError, enums, traits, types};
+#[cfg(feature = "streams")]
+use tinkoff_invest_types::market_data_stream_service_client::MarketDataStreamServiceClient;
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
@@ -32,6 +34,8 @@ impl TClientBuilderFlags {
     const MARKET_DATA: u8 = 1 << 2;
     const OPERATIONS: u8 = 1 << 3;
     const ORDERS: u8 = 1 << 4;
+    #[cfg(feature = "streams")]
+    const MARKET_DATA_STREAM: u8 = 1 << 5;
 
     #[inline]
     pub fn new() -> Self {
@@ -71,6 +75,12 @@ impl TClientBuilderFlags {
     #[inline]
     pub fn is_orders_enabled(&self) -> bool {
         self.is_enabled(Self::ORDERS)
+    }
+
+    #[cfg(feature = "streams")]
+    #[inline]
+    pub fn is_market_data_stream_enabled(&self) -> bool {
+        self.is_enabled(Self::MARKET_DATA_STREAM)
     }
 }
 
@@ -170,6 +180,14 @@ where
         self
     }
 
+    #[cfg(feature = "streams")]
+    #[inline]
+    pub fn enable_market_data_stream_service_client(mut self, value: bool) -> Self {
+        self.flags
+            .set(TClientBuilderFlags::MARKET_DATA_STREAM, value);
+        self
+    }
+
     #[inline]
     pub fn set_max_decoding_message_size(mut self, size: Option<usize>) -> Self {
         self.max_decoding_message_size = size;
@@ -242,12 +260,23 @@ where
             max_decoding_message_size
         );
 
+        #[cfg(feature = "streams")]
+        let market_data_stream_service_client = create_service_client!(
+            self.flags.is_market_data_stream_enabled(),
+            &channel,
+            &interceptor,
+            MarketDataStreamServiceClient::with_interceptor,
+            max_decoding_message_size
+        );
+
         Ok(TClient {
             users_service_client,
             instruments_service_client,
             market_data_service_client,
             operations_service_client,
             orders_service_client,
+            #[cfg(feature = "streams")]
+            market_data_stream_service_client,
         })
     }
 }
@@ -273,21 +302,25 @@ where
     market_data_service_client: Option<MarketDataServiceClient<InterceptedService<Channel, I>>>,
     operations_service_client: Option<OperationsServiceClient<InterceptedService<Channel, I>>>,
     orders_service_client: Option<OrdersServiceClient<InterceptedService<Channel, I>>>,
+    #[cfg(feature = "streams")]
+    market_data_stream_service_client:
+        Option<MarketDataStreamServiceClient<InterceptedService<Channel, I>>>,
 }
 
 impl TClient<TInterceptor> {
     /// Создаёт клиент со всеми сервисами, включёнными через Cargo features.
     pub async fn new(token: String) -> Result<Self, TError> {
         let interceptor = TInterceptor::new(token)?;
-        TClientBuilder::new()
+        let builder = TClientBuilder::new()
             .set_interceptor(Some(interceptor))
             .enable_users_service_client(cfg!(feature = "users"))
             .enable_instruments_service_client(cfg!(feature = "instruments"))
             .enable_market_data_service_client(cfg!(feature = "market-data"))
             .enable_operations_service_client(cfg!(feature = "operations"))
-            .enable_orders_service_client(cfg!(feature = "orders"))
-            .build()
-            .await
+            .enable_orders_service_client(cfg!(feature = "orders"));
+        #[cfg(feature = "streams")]
+        let builder = builder.enable_market_data_stream_service_client(true);
+        builder.build().await
     }
 }
 
@@ -751,5 +784,40 @@ where
         let mut client = client.clone();
         let response = client.cancel_order(request).await?;
         Ok(response.into_inner().time.map(|x| x.into()))
+    }
+}
+
+#[cfg(feature = "streams")]
+impl<I> TClient<I>
+where
+    I: Interceptor + Clone + Send + 'static,
+{
+    /// Открывает bidirectional market-data сессию (feature `streams`).
+    pub async fn market_data_stream<C>(
+        &self,
+        ctx: &C,
+    ) -> Result<crate::streams::MarketDataStreamSession, TError>
+    where
+        C: RequestId,
+    {
+        self.market_data_stream_with_config(ctx, crate::streams::MarketDataStreamConfig::default())
+            .await
+    }
+
+    /// Открывает bidirectional market-data сессию с конфигом (feature `streams`).
+    pub async fn market_data_stream_with_config<C>(
+        &self,
+        ctx: &C,
+        config: crate::streams::MarketDataStreamConfig,
+    ) -> Result<crate::streams::MarketDataStreamSession, TError>
+    where
+        C: RequestId,
+    {
+        let client = self
+            .market_data_stream_service_client
+            .as_ref()
+            .ok_or(TError::MarketDataStreamServiceClientNotInit)?;
+        crate::streams::open_session(client, |stream| Self::create_request(ctx, stream), config)
+            .await
     }
 }

@@ -17,6 +17,8 @@ mod client;
 pub mod enums;
 mod error;
 pub mod interceptor;
+#[cfg(feature = "streams")]
+pub mod streams;
 pub mod traits;
 pub mod types;
 
