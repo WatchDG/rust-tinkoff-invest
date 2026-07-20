@@ -19,6 +19,7 @@ pub enum TradingStatus {
     DealerNormalTrading,
     DealerBreakInTrading,
     DealerNotAvailableForTrading,
+    StabilizationAuction,
 }
 
 impl From<tinkoff_invest_types::SecurityTradingStatus> for TradingStatus {
@@ -70,6 +71,9 @@ impl From<tinkoff_invest_types::SecurityTradingStatus> for TradingStatus {
             }
             tinkoff_invest_types::SecurityTradingStatus::DealerNotAvailableForTrading => {
                 TradingStatus::DealerNotAvailableForTrading
+            }
+            tinkoff_invest_types::SecurityTradingStatus::StabilizationAuction => {
+                TradingStatus::StabilizationAuction
             }
         }
     }

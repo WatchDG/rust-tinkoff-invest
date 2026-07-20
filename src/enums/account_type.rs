@@ -9,6 +9,7 @@ pub enum AccountType {
     InvestFund,
     Debit,
     Saving,
+    Dfa,
 }
 
 impl From<tit::AccountType> for AccountType {
@@ -21,6 +22,7 @@ impl From<tit::AccountType> for AccountType {
             tit::AccountType::InvestFund => AccountType::InvestFund,
             tit::AccountType::Debit => AccountType::Debit,
             tit::AccountType::Saving => AccountType::Saving,
+            tit::AccountType::Dfa => AccountType::Dfa,
         }
     }
 }

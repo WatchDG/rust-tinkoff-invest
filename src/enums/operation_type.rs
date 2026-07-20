@@ -70,6 +70,7 @@ pub enum OperationType {
     Other,
     DfaRedemption,
     PrimaryOrder,
+    Funding,
 }
 
 impl From<tit::OperationType> for OperationType {
@@ -142,6 +143,7 @@ impl From<tit::OperationType> for OperationType {
             tit::OperationType::Other => OperationType::Other,
             tit::OperationType::DfaRedemption => OperationType::DfaRedemption,
             tit::OperationType::PrimaryOrder => OperationType::PrimaryOrder,
+            tit::OperationType::Funding => OperationType::Funding,
         }
     }
 }
