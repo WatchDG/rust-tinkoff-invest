@@ -102,7 +102,9 @@ macro_rules! create_service_client {
 
 /// Builder для [`TClient`].
 ///
-/// Позволяет выбрать endpoint, interceptor, таймаут и набор gRPC-сервисов.
+/// Позволяет выбрать endpoint, interceptor, TLS, таймаут и набор gRPC-сервисов.
+///
+/// Дефолтный TLS — [`crate::tls::russian_trusted_tls_config`].
 pub struct TClientBuilder<I>
 where
     I: Interceptor + Clone + Send,
@@ -112,6 +114,8 @@ where
     flags: TClientBuilderFlags,
     max_decoding_message_size: Option<usize>,
     timeout: Option<Duration>,
+    /// Свой TLS-конфиг. `None` — [`crate::tls::russian_trusted_tls_config`].
+    tls_config: Option<ClientTlsConfig>,
 }
 
 impl<I> TClientBuilder<I>
@@ -135,6 +139,7 @@ where
             flags: TClientBuilderFlags::new(),
             max_decoding_message_size: None,
             timeout: None,
+            tls_config: None,
         }
     }
 
@@ -147,6 +152,15 @@ where
     #[inline]
     pub fn set_interceptor(mut self, interceptor: Option<I>) -> Self {
         self.interceptor = interceptor;
+        self
+    }
+
+    /// Свой TLS-конфиг для дефолтного endpoint.
+    ///
+    /// Если задан [`Self::set_endpoint`], игнорируется — TLS настраивается в endpoint.
+    #[inline]
+    pub fn set_tls_config(mut self, tls_config: Option<ClientTlsConfig>) -> Self {
+        self.tls_config = tls_config;
         self
     }
 
@@ -209,8 +223,11 @@ where
         let endpoint = if let Some(endpoint) = self.endpoint {
             endpoint
         } else {
+            let tls = self
+                .tls_config
+                .unwrap_or_else(crate::tls::russian_trusted_tls_config);
             Channel::from_static(Self::DEFAULT_ENDPOINT)
-                .tls_config(ClientTlsConfig::new().with_native_roots())
+                .tls_config(tls)
                 .map_err(|e| TError::TlsConfig(e.to_string()))?
                 .timeout(timeout)
                 .http2_keep_alive_interval(Duration::from_secs(30))

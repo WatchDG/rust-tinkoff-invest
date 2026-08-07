@@ -19,12 +19,15 @@ mod error;
 pub mod interceptor;
 #[cfg(feature = "streams")]
 pub mod streams;
+pub mod tls;
 pub mod traits;
 pub mod types;
 
 pub use call_context::{TAccountContext, TCallContext, TOrderContext};
 pub use client::{TClient, TClientBuilder, TClientBuilderFlags};
 pub use error::TError;
+pub use tls::{russian_trusted_ca_certificates, russian_trusted_tls_config};
 
 // re-export
 pub use chrono;
+pub use tonic::transport::{Certificate, ClientTlsConfig};
