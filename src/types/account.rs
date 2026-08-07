@@ -17,9 +17,21 @@ impl From<AccountId> for String {
     }
 }
 
+impl From<&AccountId> for String {
+    fn from(value: &AccountId) -> Self {
+        value.0.clone()
+    }
+}
+
 impl traits::ToAccountId for AccountId {
     fn to_account_id(&self) -> AccountId {
         self.clone()
+    }
+}
+
+impl traits::ToAccountIdRef for AccountId {
+    fn to_account_id_ref(&self) -> &AccountId {
+        self
     }
 }
 
@@ -61,5 +73,17 @@ impl From<tit::Account> for Account {
 impl traits::ToAccountId for &Account {
     fn to_account_id(&self) -> AccountId {
         self.id.clone()
+    }
+}
+
+impl traits::ToAccountIdRef for Account {
+    fn to_account_id_ref(&self) -> &AccountId {
+        &self.id
+    }
+}
+
+impl traits::ToAccountIdRef for &Account {
+    fn to_account_id_ref(&self) -> &AccountId {
+        &self.id
     }
 }

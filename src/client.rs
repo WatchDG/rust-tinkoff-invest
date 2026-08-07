@@ -1,8 +1,12 @@
-use std::error::Error;
+use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-use crate::{TinkoffInvestError, TinkoffInvestInterceptor, enums, traits, types};
+use crate::interceptor::TInterceptor;
+use crate::traits::{RequestId, ToAccountIdRef, ToOrderIdRef};
+use crate::{TError, enums, traits, types};
+#[cfg(feature = "streams")]
+use tinkoff_invest_types::market_data_stream_service_client::MarketDataStreamServiceClient;
 use tinkoff_invest_types::{
     self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
     GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
@@ -13,396 +17,561 @@ use tinkoff_invest_types::{
     portfolio_request::CurrencyRequest, users_service_client::UsersServiceClient,
 };
 use tonic::{
+    Request as TonicRequest,
     codec::CompressionEncoding,
     codegen::InterceptedService,
     service::Interceptor,
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
 
-pub struct TinkoffInvestBuilder<I>
-where
-    I: Interceptor + Clone,
-{
-    endpoint: Endpoint,
-    interceptor: Option<I>,
-    enable_users_service_client: bool,
-    enable_instruments_service_client: bool,
-    enable_market_data_service_client: bool,
-    enable_operations_service_client: bool,
-    enable_orders_service_client: bool,
-}
+/// Флаги для включения сервисных клиентов в [`TClientBuilder`].
+#[derive(Clone, Copy, Default)]
+pub struct TClientBuilderFlags(u8);
 
-impl<I> TinkoffInvestBuilder<I>
-where
-    I: Interceptor + Clone,
-{
+impl TClientBuilderFlags {
+    const USERS: u8 = 1 << 0;
+    const INSTRUMENTS: u8 = 1 << 1;
+    const MARKET_DATA: u8 = 1 << 2;
+    const OPERATIONS: u8 = 1 << 3;
+    const ORDERS: u8 = 1 << 4;
+    #[cfg(feature = "streams")]
+    const MARKET_DATA_STREAM: u8 = 1 << 5;
+
     #[inline]
     pub fn new() -> Self {
-        let endpoint = Channel::from_static("https://invest-public-api.tinkoff.ru")
-            .tls_config(ClientTlsConfig::new().with_native_roots())
-            .unwrap()
-            .timeout(Duration::from_millis(10000));
+        Self(0)
+    }
+
+    #[inline]
+    pub fn set(&mut self, flag: u8, value: bool) {
+        self.0 = if value { self.0 | flag } else { self.0 & !flag };
+    }
+
+    #[inline]
+    pub fn is_enabled(&self, flag: u8) -> bool {
+        (self.0 & flag) != 0
+    }
+
+    #[inline]
+    pub fn is_users_enabled(&self) -> bool {
+        self.is_enabled(Self::USERS)
+    }
+
+    #[inline]
+    pub fn is_instruments_enabled(&self) -> bool {
+        self.is_enabled(Self::INSTRUMENTS)
+    }
+
+    #[inline]
+    pub fn is_market_data_enabled(&self) -> bool {
+        self.is_enabled(Self::MARKET_DATA)
+    }
+
+    #[inline]
+    pub fn is_operations_enabled(&self) -> bool {
+        self.is_enabled(Self::OPERATIONS)
+    }
+
+    #[inline]
+    pub fn is_orders_enabled(&self) -> bool {
+        self.is_enabled(Self::ORDERS)
+    }
+
+    #[cfg(feature = "streams")]
+    #[inline]
+    pub fn is_market_data_stream_enabled(&self) -> bool {
+        self.is_enabled(Self::MARKET_DATA_STREAM)
+    }
+}
+
+macro_rules! create_service_client {
+    ($enabled:expr, $channel:expr, $interceptor:expr, $factory:expr, $max_size:expr) => {{
+        if $enabled {
+            let channel_clone = $channel.clone();
+            let interceptor_clone = $interceptor.clone();
+            let mut client = $factory(channel_clone, interceptor_clone);
+            client = client.send_compressed(CompressionEncoding::Gzip);
+            client = client.accept_compressed(CompressionEncoding::Gzip);
+            client = client.max_decoding_message_size($max_size);
+            Some(client)
+        } else {
+            None
+        }
+    }};
+}
+
+/// Builder для [`TClient`].
+///
+/// Позволяет выбрать endpoint, interceptor, TLS, таймаут и набор gRPC-сервисов.
+///
+/// Дефолтный TLS — [`crate::tls::russian_trusted_tls_config`].
+pub struct TClientBuilder<I>
+where
+    I: Interceptor + Clone + Send,
+{
+    endpoint: Option<Endpoint>,
+    interceptor: Option<I>,
+    flags: TClientBuilderFlags,
+    max_decoding_message_size: Option<usize>,
+    timeout: Option<Duration>,
+    /// Свой TLS-конфиг. `None` — [`crate::tls::russian_trusted_tls_config`].
+    tls_config: Option<ClientTlsConfig>,
+}
+
+impl<I> TClientBuilder<I>
+where
+    I: Interceptor + Clone + Send,
+{
+    /// URL эндпоинта Tinkoff Invest API по умолчанию
+    const DEFAULT_ENDPOINT: &'static str = "https://invest-public-api.tinkoff.ru";
+
+    /// Таймаут подключения по умолчанию (10 секунд)
+    const DEFAULT_TIMEOUT: Duration = Duration::from_millis(10000);
+
+    /// Максимальный размер декодируемого сообщения (256 MB)
+    const DEFAULT_MAX_DECODING_MESSAGE_SIZE: usize = 256 * 1024 * 1024;
+
+    #[inline]
+    pub fn new() -> Self {
         Self {
-            endpoint,
+            endpoint: None,
             interceptor: None,
-            enable_users_service_client: false,
-            enable_instruments_service_client: false,
-            enable_market_data_service_client: false,
-            enable_operations_service_client: false,
-            enable_orders_service_client: false,
+            flags: TClientBuilderFlags::new(),
+            max_decoding_message_size: None,
+            timeout: None,
+            tls_config: None,
         }
     }
 
     #[inline]
-    pub fn endpoint(&mut self, endpoint: Endpoint) -> &Self {
+    pub fn set_endpoint(mut self, endpoint: Option<Endpoint>) -> Self {
         self.endpoint = endpoint;
         self
     }
 
     #[inline]
-    pub fn interceptor(&mut self, interceptor: Option<I>) -> &Self {
+    pub fn set_interceptor(mut self, interceptor: Option<I>) -> Self {
         self.interceptor = interceptor;
         self
     }
 
+    /// Свой TLS-конфиг для дефолтного endpoint.
+    ///
+    /// Если задан [`Self::set_endpoint`], игнорируется — TLS настраивается в endpoint.
     #[inline]
-    pub fn enable_users_service_client(&mut self, value: bool) -> &Self {
-        self.enable_users_service_client = value;
+    pub fn set_tls_config(mut self, tls_config: Option<ClientTlsConfig>) -> Self {
+        self.tls_config = tls_config;
         self
     }
 
     #[inline]
-    pub fn enable_instruments_service_client(&mut self, value: bool) -> &Self {
-        self.enable_instruments_service_client = value;
+    pub fn enable_users_service_client(mut self, value: bool) -> Self {
+        self.flags.set(TClientBuilderFlags::USERS, value);
         self
     }
 
     #[inline]
-    pub fn enable_market_data_service_client(&mut self, value: bool) -> &Self {
-        self.enable_market_data_service_client = value;
+    pub fn enable_instruments_service_client(mut self, value: bool) -> Self {
+        self.flags.set(TClientBuilderFlags::INSTRUMENTS, value);
         self
     }
 
     #[inline]
-    pub fn enable_operations_service_client(&mut self, value: bool) -> &Self {
-        self.enable_operations_service_client = value;
+    pub fn enable_market_data_service_client(mut self, value: bool) -> Self {
+        self.flags.set(TClientBuilderFlags::MARKET_DATA, value);
         self
     }
 
     #[inline]
-    pub fn enable_orders_service_client(&mut self, value: bool) -> &Self {
-        self.enable_orders_service_client = value;
+    pub fn enable_operations_service_client(mut self, value: bool) -> Self {
+        self.flags.set(TClientBuilderFlags::OPERATIONS, value);
         self
     }
 
     #[inline]
-    pub async fn build(self) -> Result<TinkoffInvest<I>, Box<dyn Error>> {
-        let channel = self.endpoint.clone().connect().await?;
-        let interceptor = self
-            .interceptor
-            .ok_or(TinkoffInvestError::InterceptorNotSet)?;
-        let users_service_client = if self.enable_users_service_client {
-            let mut client =
-                UsersServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
+    pub fn enable_orders_service_client(mut self, value: bool) -> Self {
+        self.flags.set(TClientBuilderFlags::ORDERS, value);
+        self
+    }
+
+    #[cfg(feature = "streams")]
+    #[inline]
+    pub fn enable_market_data_stream_service_client(mut self, value: bool) -> Self {
+        self.flags
+            .set(TClientBuilderFlags::MARKET_DATA_STREAM, value);
+        self
+    }
+
+    #[inline]
+    pub fn set_max_decoding_message_size(mut self, size: Option<usize>) -> Self {
+        self.max_decoding_message_size = size;
+        self
+    }
+
+    #[inline]
+    pub fn set_timeout(mut self, timeout: Option<Duration>) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    #[inline]
+    pub async fn build(self) -> Result<TClient<I>, TError> {
+        let timeout = self.timeout.unwrap_or(Self::DEFAULT_TIMEOUT);
+        let max_decoding_message_size = self
+            .max_decoding_message_size
+            .unwrap_or(Self::DEFAULT_MAX_DECODING_MESSAGE_SIZE);
+        let endpoint = if let Some(endpoint) = self.endpoint {
+            endpoint
         } else {
-            None
+            let tls = self
+                .tls_config
+                .unwrap_or_else(crate::tls::russian_trusted_tls_config);
+            Channel::from_static(Self::DEFAULT_ENDPOINT)
+                .tls_config(tls)
+                .map_err(|e| TError::TlsConfig(e.to_string()))?
+                .timeout(timeout)
+                .http2_keep_alive_interval(Duration::from_secs(30))
+                .keep_alive_timeout(Duration::from_secs(10))
+                .keep_alive_while_idle(true)
         };
-        let instruments_service_client = if self.enable_instruments_service_client {
-            let mut client =
-                InstrumentsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        let market_data_service_client = if self.enable_market_data_service_client {
-            let mut client =
-                MarketDataServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        let operations_service_client = if self.enable_operations_service_client {
-            let mut client =
-                OperationsServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        let orders_service_client = if self.enable_orders_service_client {
-            let mut client =
-                OrdersServiceClient::with_interceptor(channel.clone(), interceptor.clone());
-            client = client.send_compressed(CompressionEncoding::Gzip);
-            client = client.accept_compressed(CompressionEncoding::Gzip);
-            client = client.max_decoding_message_size(256 * 1024 * 1024);
-            Some(client)
-        } else {
-            None
-        };
-        Ok(TinkoffInvest {
-            account: None,
-            endpoint: self.endpoint,
-            channel,
-            interceptor,
+        let channel = endpoint.connect().await?;
+        let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
+
+        let users_service_client = create_service_client!(
+            self.flags.is_users_enabled(),
+            &channel,
+            &interceptor,
+            UsersServiceClient::with_interceptor,
+            max_decoding_message_size
+        );
+
+        let instruments_service_client = create_service_client!(
+            self.flags.is_instruments_enabled(),
+            &channel,
+            &interceptor,
+            InstrumentsServiceClient::with_interceptor,
+            max_decoding_message_size
+        );
+
+        let market_data_service_client = create_service_client!(
+            self.flags.is_market_data_enabled(),
+            &channel,
+            &interceptor,
+            MarketDataServiceClient::with_interceptor,
+            max_decoding_message_size
+        );
+
+        let operations_service_client = create_service_client!(
+            self.flags.is_operations_enabled(),
+            &channel,
+            &interceptor,
+            OperationsServiceClient::with_interceptor,
+            max_decoding_message_size
+        );
+
+        let orders_service_client = create_service_client!(
+            self.flags.is_orders_enabled(),
+            &channel,
+            &interceptor,
+            OrdersServiceClient::with_interceptor,
+            max_decoding_message_size
+        );
+
+        #[cfg(feature = "streams")]
+        let market_data_stream_service_client = create_service_client!(
+            self.flags.is_market_data_stream_enabled(),
+            &channel,
+            &interceptor,
+            MarketDataStreamServiceClient::with_interceptor,
+            max_decoding_message_size
+        );
+
+        Ok(TClient {
             users_service_client,
             instruments_service_client,
             market_data_service_client,
             operations_service_client,
             orders_service_client,
+            #[cfg(feature = "streams")]
+            market_data_stream_service_client,
         })
     }
 }
 
-impl<I> Default for TinkoffInvestBuilder<I>
+impl<I> Default for TClientBuilder<I>
 where
-    I: Interceptor + Clone,
+    I: Interceptor + Clone + Send,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-pub struct TinkoffInvest<I>
+/// Клиент Tinkoff Invest API.
+///
+/// Создаётся через [`TClient::new`] или [`TClientBuilder`].
+pub struct TClient<I>
 where
-    I: Interceptor,
+    I: Interceptor + Clone + Send,
 {
-    account: Option<types::Account>,
-    pub(crate) endpoint: Endpoint,
-    pub(crate) channel: Channel,
-    pub(crate) interceptor: I,
     users_service_client: Option<UsersServiceClient<InterceptedService<Channel, I>>>,
     instruments_service_client: Option<InstrumentsServiceClient<InterceptedService<Channel, I>>>,
     market_data_service_client: Option<MarketDataServiceClient<InterceptedService<Channel, I>>>,
     operations_service_client: Option<OperationsServiceClient<InterceptedService<Channel, I>>>,
     orders_service_client: Option<OrdersServiceClient<InterceptedService<Channel, I>>>,
+    #[cfg(feature = "streams")]
+    market_data_stream_service_client:
+        Option<MarketDataStreamServiceClient<InterceptedService<Channel, I>>>,
 }
 
-impl TinkoffInvest<TinkoffInvestInterceptor> {
-    pub async fn new(token: String) -> Result<Self, Box<dyn Error>> {
-        let interceptor = TinkoffInvestInterceptor::new(token);
-        let mut builder = TinkoffInvestBuilder::new();
-        builder.interceptor(Some(interceptor));
-        builder.enable_users_service_client(true);
-        builder.enable_instruments_service_client(true);
-        builder.enable_market_data_service_client(true);
-        builder.enable_operations_service_client(true);
-        builder.enable_orders_service_client(true);
+impl TClient<TInterceptor> {
+    /// Создаёт клиент со всеми сервисами, включёнными через Cargo features.
+    pub async fn new(token: String) -> Result<Self, TError> {
+        let interceptor = TInterceptor::new(token)?;
+        let builder = TClientBuilder::new()
+            .set_interceptor(Some(interceptor))
+            .enable_users_service_client(cfg!(feature = "users"))
+            .enable_instruments_service_client(cfg!(feature = "instruments"))
+            .enable_market_data_service_client(cfg!(feature = "market-data"))
+            .enable_operations_service_client(cfg!(feature = "operations"))
+            .enable_orders_service_client(cfg!(feature = "orders"));
+        #[cfg(feature = "streams")]
+        let builder = builder.enable_market_data_stream_service_client(true);
         builder.build().await
     }
 }
 
-impl<I> TinkoffInvest<I>
+impl<I> TClient<I>
 where
-    I: Interceptor,
+    I: Interceptor + Clone + Send,
 {
-    #[inline]
-    pub fn set_account(&mut self, account: Option<types::Account>) -> &Self {
-        self.account = account;
-        self
+    /// Создаёт Request с установленным `x-tracking-id` из контекста.
+    fn create_request<T, C>(ctx: &C, message: T) -> Result<TonicRequest<T>, TError>
+    where
+        C: RequestId,
+    {
+        let mut request = TonicRequest::new(message);
+        let request_id_string = ctx
+            .request_id()
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| Uuid::now_v7().to_string());
+        let tracking_id = request_id_string
+            .parse()
+            .map_err(|e| TError::InvalidMetadata(format!("x-tracking-id: {e}")))?;
+        request.metadata_mut().insert("x-tracking-id", tracking_id);
+        Ok(request)
     }
 
-    pub async fn accounts(&mut self) -> Result<Vec<types::Account>, Box<dyn Error>> {
+    pub async fn accounts<C>(&self, ctx: &C) -> Result<Vec<types::Account>, TError>
+    where
+        C: RequestId,
+    {
         let client = self
             .users_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::UsersServiceClientNotInit)?;
-        let request = GetAccountsRequest {
-            ..Default::default()
-        };
+            .as_ref()
+            .ok_or(TError::UsersServiceClientNotInit)?;
+        let message = GetAccountsRequest::default();
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
-        Ok(accounts.iter().map(|v| v.clone().into()).collect())
+        let mut result = Vec::with_capacity(accounts.len());
+        for v in accounts {
+            result.push(v.into());
+        }
+        Ok(result)
     }
 
-    pub async fn market_instruments(
-        &mut self,
+    pub async fn market_instruments<C>(
+        &self,
+        ctx: &C,
         instrument_type: enums::InstrumentType,
-    ) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+    ) -> Result<Vec<types::MarketInstrument>, TError>
+    where
+        C: RequestId,
+    {
         match instrument_type {
-            enums::InstrumentType::Share => self.shares().await,
-            enums::InstrumentType::Currency => self.currencies().await,
-            enums::InstrumentType::Future => self.futures().await,
-            // enums::InstrumentType::Option => self.options().await,
+            enums::InstrumentType::Share => self.shares(ctx).await,
+            enums::InstrumentType::Currency => self.currencies(ctx).await,
+            enums::InstrumentType::Future => self.futures(ctx).await,
         }
     }
 
-    pub async fn market_instrument<T>(
-        &mut self,
+    pub async fn market_instrument<T, C>(
+        &self,
+        ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         match instrument.to_instrument_type() {
-            enums::InstrumentType::Share => self.share(instrument).await,
-            enums::InstrumentType::Currency => self.currency(instrument).await,
-            enums::InstrumentType::Future => self.future(instrument).await,
-            // enums::InstrumentType::Option => self.option(instrument).await,
+            enums::InstrumentType::Share => self.share(ctx, instrument).await,
+            enums::InstrumentType::Currency => self.currency(ctx, instrument).await,
+            enums::InstrumentType::Future => self.future(ctx, instrument).await,
         }
     }
 
-    pub async fn shares(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+    pub async fn shares<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
+    where
+        C: RequestId,
+    {
         let client = self
             .instruments_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentsRequest::default();
-        request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
+            .as_ref()
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
+        let mut message = InstrumentsRequest::default();
+        message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let shares = client.shares(request).await?.into_inner().instruments;
-        Ok(shares.into_iter().map(|x| x.into()).collect())
+        let mut result = Vec::with_capacity(shares.len());
+        for x in shares {
+            result.push(x.into());
+        }
+        Ok(result)
     }
 
-    pub async fn share<T>(
-        &mut self,
+    pub async fn share<T, C>(
+        &self,
+        ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Share {
-            return Err(TinkoffInvestError::MarketInstrumentTypeNotShare.into());
+            return Err(TError::MarketInstrumentTypeNotShare);
         }
         let client = self
             .instruments_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentRequest {
+            .as_ref()
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
+        let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
             ..Default::default()
         };
-        request.set_id_type(InstrumentIdType::Figi);
+        message.set_id_type(InstrumentIdType::Figi);
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let share = client.share_by(request).await?.into_inner().instrument;
-        Ok(share.as_ref().map(|x| x.clone().into()))
+        Ok(share.map(|x| x.into()))
     }
 
-    pub async fn currencies(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+    pub async fn currencies<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
+    where
+        C: RequestId,
+    {
         let client = self
             .instruments_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentsRequest::default();
-        request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
+            .as_ref()
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
+        let mut message = InstrumentsRequest::default();
+        message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let currencies = client.currencies(request).await?.into_inner().instruments;
-        Ok(currencies.into_iter().map(|v| v.into()).collect())
+        let mut result = Vec::with_capacity(currencies.len());
+        for v in currencies {
+            result.push(v.into());
+        }
+        Ok(result)
     }
 
-    pub async fn currency<T>(
-        &mut self,
+    pub async fn currency<T, C>(
+        &self,
+        ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Currency {
-            return Err(TinkoffInvestError::MarketInstrumentTypeNotCurrency.into());
+            return Err(TError::MarketInstrumentTypeNotCurrency);
         }
         let client = self
             .instruments_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentRequest {
+            .as_ref()
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
+        let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
             ..Default::default()
         };
-        request.set_id_type(InstrumentIdType::Figi);
+        message.set_id_type(InstrumentIdType::Figi);
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let currency = client.currency_by(request).await?.into_inner().instrument;
-        Ok(currency.as_ref().map(|x| x.clone().into()))
+        Ok(currency.map(|x| x.into()))
     }
 
-    pub async fn futures(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
+    pub async fn futures<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
+    where
+        C: RequestId,
+    {
         let client = self
             .instruments_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentsRequest::default();
-        request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
+            .as_ref()
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
+        let mut message = InstrumentsRequest::default();
+        message.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let futures = client.futures(request).await?.into_inner().instruments;
-        Ok(futures.into_iter().map(|v| v.into()).collect())
+        let mut result = Vec::with_capacity(futures.len());
+        for v in futures {
+            result.push(v.into());
+        }
+        Ok(result)
     }
 
-    pub async fn future<T>(
-        &mut self,
+    pub async fn future<T, C>(
+        &self,
+        ctx: &C,
         instrument: T,
-    ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
+    ) -> Result<Option<types::MarketInstrument>, TError>
     where
         T: traits::ToInstrumentType + traits::ToFigi,
+        C: RequestId,
     {
         if instrument.to_instrument_type() != enums::InstrumentType::Future {
-            return Err(TinkoffInvestError::MarketInstrumentTypeNotFuture.into());
+            return Err(TError::MarketInstrumentTypeNotFuture);
         }
         let client = self
             .instruments_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-        let mut request = InstrumentRequest {
+            .as_ref()
+            .ok_or(TError::InstrumentsServiceClientNotInit)?;
+        let mut message = InstrumentRequest {
             id: instrument.to_figi().into(),
             ..Default::default()
         };
-        request.set_id_type(InstrumentIdType::Figi);
+        message.set_id_type(InstrumentIdType::Figi);
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let future = client.future_by(request).await?.into_inner().instrument;
-        Ok(future.as_ref().map(|x| x.clone().into()))
+        Ok(future.map(|x| x.into()))
     }
 
-    // pub async fn options(&mut self) -> Result<Vec<types::MarketInstrument>, Box<dyn Error>> {
-    //     let client = self
-    //         .instruments_service_client
-    //         .as_mut()
-    //         .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-    //     let mut request = InstrumentsRequest::default();
-    //     request.set_instrument_status(tinkoff_invest_types::InstrumentStatus::All);
-    //     let futures = client.options(request).await?.into_inner().instruments;
-    //     Ok(futures.into_iter().map(|v| v.into()).collect())
-    // }
-
-    // pub async fn option<T>(
-    //     &mut self,
-    //     instrument: T,
-    // ) -> Result<Option<types::MarketInstrument>, Box<dyn Error>>
-    // where
-    //     T: traits::ToInstrumentType + traits::ToFigi,
-    // {
-    //     if instrument.to_instrument_type() != enums::InstrumentType::Future {
-    //         return Err(TinkoffInvestError::MarketInstrumentTypeNotFuture.into());
-    //     }
-    //     let client = self
-    //         .instruments_service_client
-    //         .as_mut()
-    //         .ok_or(TinkoffInvestError::InstrumentsServiceClientNotInit)?;
-    //     let mut request = InstrumentRequest {
-    //         id: instrument.to_figi().into(),
-    //         ..Default::default()
-    //     };
-    //     request.set_id_type(InstrumentIdType::Figi);
-    //     let future = client.option_by(request).await?.into_inner().instrument;
-    //     Ok(future.as_ref().map(|x| x.clone().into()))
-    // }
-
-    pub async fn trading_status<T>(
-        &mut self,
+    pub async fn trading_status<T, C>(
+        &self,
+        ctx: &C,
         instrument: T,
-    ) -> Result<enums::TradingStatus, Box<dyn Error>>
+    ) -> Result<enums::TradingStatus, TError>
     where
         T: traits::ToUid,
+        C: RequestId,
     {
         let client = self
             .market_data_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
-        let request = GetTradingStatusRequest {
+            .as_ref()
+            .ok_or(TError::MarketDataServiceClientNotInit)?;
+        let message = GetTradingStatusRequest {
             instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         Ok(client
             .get_trading_status(request)
             .await?
@@ -411,303 +580,261 @@ where
             .into())
     }
 
-    pub async fn candlesticks<T>(
-        &mut self,
+    pub async fn candlesticks<T, C>(
+        &self,
+        ctx: &C,
         instrument: T,
         interval: enums::CandlestickInterval,
         from: types::DateTime,
         to: types::DateTime,
-    ) -> Result<Vec<types::Candlestick>, Box<dyn Error>>
+    ) -> Result<Vec<types::Candlestick>, TError>
     where
         T: traits::ToUid,
+        C: RequestId,
     {
-        let uid = instrument.to_uid();
-        let mut request = GetCandlesRequest {
-            instrument_id: Some(uid.clone().into()),
+        let uid = Arc::new(instrument.to_uid());
+        let interval = Arc::new(interval);
+        let mut message = GetCandlesRequest {
+            instrument_id: Some((*uid).clone().into()),
             from: Some(from.into()),
             to: Some(to.into()),
             ..Default::default()
         };
-        request.set_interval(interval.clone().into());
+        message.set_interval((*interval).clone().into());
         let client = self
             .market_data_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
+            .as_ref()
+            .ok_or(TError::MarketDataServiceClientNotInit)?;
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let candlesticks = client.get_candles(request).await?.into_inner().candles;
-        Ok(candlesticks
-            .into_iter()
-            .map(|x| {
-                let mut candlestick = types::Candlestick::from(x);
-                candlestick.uid = Some(uid.clone());
-                candlestick.interval = Some(interval.clone());
-                candlestick
-            })
-            .collect())
+        let mut result = Vec::with_capacity(candlesticks.len());
+        for x in candlesticks {
+            if let Some(time) = x.time {
+                result.push(types::Candlestick {
+                    instrument_uid: Arc::clone(&uid),
+                    interval: Arc::clone(&interval),
+                    open: x.open.map(|v| v.into()),
+                    high: x.high.map(|v| v.into()),
+                    low: x.low.map(|v| v.into()),
+                    close: x.close.map(|v| v.into()),
+                    volume: x.volume as u64,
+                    datetime: time.into(),
+                    is_complete: x.is_complete,
+                });
+            }
+        }
+        Ok(result)
     }
 
-    pub async fn orderbook<T>(
-        &mut self,
+    pub async fn orderbook<T, C>(
+        &self,
+        ctx: &C,
         instrument: T,
         depth: usize,
-    ) -> Result<types::OrderBook, Box<dyn Error>>
+    ) -> Result<types::OrderBook, TError>
     where
         T: traits::ToUid,
+        C: RequestId,
     {
-        let request = GetOrderBookRequest {
+        let message = GetOrderBookRequest {
             depth: depth as i32,
             instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
         let client = self
             .market_data_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::MarketDataServiceClientNotInit)?;
+            .as_ref()
+            .ok_or(TError::MarketDataServiceClientNotInit)?;
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         Ok(client.get_order_book(request).await?.into_inner().into())
     }
 
-    pub async fn order_on_account<T>(
-        &mut self,
-        account: T,
-        order_id: types::OrderId,
-    ) -> Result<types::Order, Box<dyn Error>>
+    pub async fn order<C>(&self, ctx: &C) -> Result<types::Order, TError>
     where
-        T: traits::ToAccountId,
+        C: RequestId + ToAccountIdRef + ToOrderIdRef,
     {
         let client = self
             .orders_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
-        let request = tinkoff_invest_types::GetOrderStateRequest {
-            account_id: account.to_account_id().into(),
-            order_id: order_id.into(),
+            .as_ref()
+            .ok_or(TError::OrdersServiceClientNotInit)?;
+        let message = tinkoff_invest_types::GetOrderStateRequest {
+            account_id: ctx.to_account_id_ref().into(),
+            order_id: ctx.to_order_id_ref().into(),
             ..Default::default()
         };
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let order_state = client.get_order_state(request).await?.into_inner();
         Ok(types::Order::from(order_state))
     }
 
-    pub async fn order<T>(
-        &mut self,
-        order_id: types::OrderId,
-    ) -> Result<types::Order, Box<dyn Error>> {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.order_on_account(&account, order_id).await
-    }
-
     #[inline]
-    pub async fn operations_on_account<T, K>(
-        &mut self,
-        account: T,
+    pub async fn operations<K, C>(
+        &self,
+        ctx: &C,
         instrument: K,
         state: enums::OperationState,
         from: types::DateTime,
         to: types::DateTime,
-    ) -> Result<Vec<types::Operation>, Box<dyn Error>>
+    ) -> Result<Vec<types::Operation>, TError>
     where
-        T: traits::ToAccountId,
         K: traits::ToFigi,
+        C: RequestId + ToAccountIdRef,
     {
         let from = Some(from.into());
         let to = Some(to.into());
         let client = self
             .operations_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
-        let mut request = OperationsRequest {
-            account_id: account.to_account_id().into(),
+            .as_ref()
+            .ok_or(TError::OperationsServiceClientNotInit)?;
+        let mut message = OperationsRequest {
+            account_id: ctx.to_account_id_ref().into(),
             figi: Some(instrument.to_figi().into()),
             state: Some(0),
             from,
             to,
         };
-        request.set_state(state.into());
-        let operations = client
-            .get_operations(request)
-            .await?
-            .into_inner()
-            .operations;
-        Ok(operations.into_iter().map(|x| x.into()).collect())
+        message.set_state(state.into());
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
+        let response = client.get_operations(request).await?;
+        let operations = response.into_inner().operations;
+        let mut result = Vec::with_capacity(operations.len());
+        for x in operations {
+            result.push(x.into());
+        }
+        Ok(result)
     }
 
-    pub async fn operations<T>(
-        &mut self,
-        instrument: T,
-        state: enums::OperationState,
-        from: types::DateTime,
-        to: types::DateTime,
-    ) -> Result<Vec<types::Operation>, Box<dyn Error>>
+    pub async fn portfolio<C>(&self, ctx: &C) -> Result<Vec<types::PortfolioPosition>, TError>
     where
-        T: traits::ToFigi,
+        C: RequestId + ToAccountIdRef,
     {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.operations_on_account(&account, instrument, state, from, to)
-            .await
-    }
-
-    pub async fn portfolio_on_account<T>(
-        &mut self,
-        account: T,
-    ) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>>
-    where
-        T: traits::ToAccountId,
-    {
-        let mut request = PortfolioRequest {
-            account_id: account.to_account_id().into(),
+        let mut message = PortfolioRequest {
+            account_id: ctx.to_account_id_ref().into(),
             ..Default::default()
         };
-        request.set_currency(CurrencyRequest::Rub);
+        message.set_currency(CurrencyRequest::Rub);
         let client = self
             .operations_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
-        let portfolio_positions = client
-            .get_portfolio(request)
-            .await?
-            .into_inner()
-            .positions
-            .iter()
-            .map(|x| x.into())
-            .collect();
-        Ok(portfolio_positions)
-    }
-
-    pub async fn portfolio(&mut self) -> Result<Vec<types::PortfolioPosition>, Box<dyn Error>> {
-        let account = self
-            .account
             .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.portfolio_on_account(&account).await
+            .ok_or(TError::OperationsServiceClientNotInit)?;
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
+        let positions = client.get_portfolio(request).await?.into_inner().positions;
+        let mut result = Vec::with_capacity(positions.len());
+        for x in &positions {
+            result.push(x.into());
+        }
+        Ok(result)
     }
 
-    pub async fn positions_on_account<T>(
-        &mut self,
-        account: T,
-    ) -> Result<types::Positions, Box<dyn Error>>
+    pub async fn positions<C>(&self, ctx: &C) -> Result<types::Positions, TError>
     where
-        T: traits::ToAccountId,
+        C: RequestId + ToAccountIdRef,
     {
-        let request = PositionsRequest {
-            account_id: account.to_account_id().into(),
+        let message = PositionsRequest {
+            account_id: ctx.to_account_id_ref().into(),
         };
         let client = self
             .operations_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::OperationsServiceClientNotInit)?;
+            .as_ref()
+            .ok_or(TError::OperationsServiceClientNotInit)?;
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
         let response = client.get_positions(request).await?;
         let positions = response.into_inner().into();
         Ok(positions)
     }
 
-    pub async fn positions(&mut self) -> Result<types::Positions, Box<dyn Error>> {
-        let account = self
-            .account
-            .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.positions_on_account(&account).await
-    }
-
     #[inline]
-    pub async fn limit_order_on_account<T, K>(
-        &mut self,
-        account: T,
-        instrument: K,
+    pub async fn limit_order<C>(
+        &self,
+        ctx: &C,
+        instrument: impl traits::ToUid,
         direction: enums::OrderDirection,
         quantity: u64,
         price: types::MoneyValue,
-        order_id: Option<String>,
-    ) -> Result<types::Order, Box<dyn Error>>
+    ) -> Result<types::Order, TError>
     where
-        T: traits::ToAccountId,
-        K: traits::ToUid,
+        C: RequestId + ToAccountIdRef + ToOrderIdRef,
     {
-        let order_id = order_id.unwrap_or_else(|| Uuid::new_v4().to_string());
-        let mut request = PostOrderRequest {
-            order_id,
-            account_id: account.to_account_id().into(),
+        let mut message = PostOrderRequest {
+            order_id: ctx.to_order_id_ref().into(),
+            account_id: ctx.to_account_id_ref().into(),
             instrument_id: instrument.to_uid().into(),
             quantity: quantity as i64,
             price: Some(price.into()),
             ..Default::default()
         };
-        request.set_direction(direction.into());
-        request.set_order_type(tinkoff_invest_types::OrderType::Limit);
+        message.set_direction(direction.into());
+        message.set_order_type(tinkoff_invest_types::OrderType::Limit);
         let client = self
             .orders_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
-        Ok(client.post_order(request).await?.into_inner().into())
-    }
-
-    pub async fn limit_order<T>(
-        &mut self,
-        instrument: T,
-        direction: enums::OrderDirection,
-        quantity: u64,
-        price: types::MoneyValue,
-        order_id: Option<String>,
-    ) -> Result<types::Order, Box<dyn Error>>
-    where
-        T: traits::ToUid,
-    {
-        let account = self
-            .account
             .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.limit_order_on_account(&account, instrument, direction, quantity, price, order_id)
-            .await
+            .ok_or(TError::OrdersServiceClientNotInit)?;
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
+        let response = client.post_order(request).await?;
+        let order = response.into_inner().into();
+        Ok(order)
     }
 
     #[inline]
-    pub async fn cancel_order_on_account<T, K>(
-        &mut self,
-        account: T,
-        order: K,
-    ) -> Result<Option<types::DateTime>, Box<dyn Error>>
+    pub async fn cancel_order<C>(&self, ctx: &C) -> Result<Option<types::DateTime>, TError>
     where
-        T: traits::ToAccountId,
-        K: traits::ToOrderId,
+        C: RequestId + ToAccountIdRef + ToOrderIdRef,
     {
-        let mut request = CancelOrderRequest {
-            account_id: account.to_account_id().into(),
-            order_id: order.to_order_id().into(),
+        let mut message = CancelOrderRequest {
+            account_id: ctx.to_account_id_ref().into(),
+            order_id: ctx.to_order_id_ref().into(),
             ..Default::default()
         };
-        request.set_order_id_type(OrderIdType::Exchange);
+        message.set_order_id_type(OrderIdType::Exchange);
         let client = self
             .orders_service_client
-            .as_mut()
-            .ok_or(TinkoffInvestError::OrdersServiceClientNotInit)?;
-        Ok(client
-            .cancel_order(request)
-            .await?
-            .into_inner()
-            .time
-            .map(|x| x.into()))
+            .as_ref()
+            .ok_or(TError::OrdersServiceClientNotInit)?;
+        let request = Self::create_request(ctx, message)?;
+        let mut client = client.clone();
+        let response = client.cancel_order(request).await?;
+        Ok(response.into_inner().time.map(|x| x.into()))
+    }
+}
+
+#[cfg(feature = "streams")]
+impl<I> TClient<I>
+where
+    I: Interceptor + Clone + Send + 'static,
+{
+    /// Открывает bidirectional market-data сессию (feature `streams`).
+    pub async fn market_data_stream<C>(
+        &self,
+        ctx: &C,
+    ) -> Result<crate::streams::MarketDataStreamSession, TError>
+    where
+        C: RequestId,
+    {
+        self.market_data_stream_with_config(ctx, crate::streams::MarketDataStreamConfig::default())
+            .await
     }
 
-    pub async fn cancel_order<T>(
-        &mut self,
-        order: T,
-    ) -> Result<Option<types::DateTime>, Box<dyn Error>>
+    /// Открывает bidirectional market-data сессию с конфигом (feature `streams`).
+    pub async fn market_data_stream_with_config<C>(
+        &self,
+        ctx: &C,
+        config: crate::streams::MarketDataStreamConfig,
+    ) -> Result<crate::streams::MarketDataStreamSession, TError>
     where
-        T: traits::ToOrderId,
+        C: RequestId,
     {
-        let account = self
-            .account
+        let client = self
+            .market_data_stream_service_client
             .as_ref()
-            .ok_or(TinkoffInvestError::AccountNotSet)?
-            .clone();
-        self.cancel_order_on_account(&account, order).await
+            .ok_or(TError::MarketDataStreamServiceClientNotInit)?;
+        crate::streams::open_session(client, |stream| Self::create_request(ctx, stream), config)
+            .await
     }
 }

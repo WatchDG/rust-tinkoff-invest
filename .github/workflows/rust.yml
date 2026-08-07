@@ -13,8 +13,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install protoc
-      run: sudo apt-get install -y protobuf-compiler
+      run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+    - name: Format
+      run: cargo fmt --all -- --check
+    - name: Clippy
+      run: cargo clippy --all-targets -- -D warnings
     - name: Build
       run: cargo build --verbose
+    - name: Test
+      run: cargo test --verbose
