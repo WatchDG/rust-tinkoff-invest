@@ -22,11 +22,9 @@ impl Uid {
     }
 
     /// Парсит UID из строки ответа API.
-    ///
-    /// При невалидном значении возвращает nil UUID (данные API считаются доверенными).
     #[inline]
-    pub(crate) fn from_api_str(value: &str) -> Self {
-        Self::try_from(value).unwrap_or_else(|_| Self(Uuid::nil()))
+    pub(crate) fn from_api_str(value: &str) -> Result<Self, TError> {
+        Self::try_from(value)
     }
 }
 
@@ -82,6 +80,8 @@ mod tests {
     #[test]
     fn try_from_invalid_uuid() {
         let err = Uid::try_from("not-a-uuid").unwrap_err();
+        assert!(matches!(err, TError::InvalidUid(_)));
+        let err = Uid::from_api_str("not-a-uuid").unwrap_err();
         assert!(matches!(err, TError::InvalidUid(_)));
     }
 }

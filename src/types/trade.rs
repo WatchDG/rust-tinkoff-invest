@@ -1,6 +1,8 @@
+use std::convert::TryFrom;
+
 use tinkoff_invest_types as tit;
 
-use crate::types;
+use crate::{TError, types};
 
 /// Сделка
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,13 +17,15 @@ pub struct Trade {
     pub datetime: Option<types::DateTime>,
 }
 
-impl From<tit::OperationTrade> for Trade {
-    fn from(value: tit::OperationTrade) -> Self {
-        Trade {
+impl TryFrom<tit::OperationTrade> for Trade {
+    type Error = TError;
+
+    fn try_from(value: tit::OperationTrade) -> Result<Self, Self::Error> {
+        Ok(Trade {
             id: value.trade_id,
-            lots: value.quantity as u64,
+            lots: crate::num::to_u64(value.quantity)?,
             price: value.price.map(|x| x.into()),
-            datetime: value.date_time.map(|x| x.into()),
-        }
+            datetime: value.date_time.map(types::DateTime::try_from).transpose()?,
+        })
     }
 }

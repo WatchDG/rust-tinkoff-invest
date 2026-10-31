@@ -17,7 +17,8 @@ use tinkoff_invest::{
 async fn main() -> Result<(), TError> {
     let token = std::env::var("TINKOFF_INVEST_TOKEN")
         .map_err(|e| TError::InvalidToken(format!("TINKOFF_INVEST_TOKEN is required: {e}")))?;
-    let account_id = std::env::var("ACCOUNT_ID").map_err(|_| TError::AccountNotSet)?;
+    let account_id = std::env::var("ACCOUNT_ID")
+        .map_err(|_| TError::InvalidMetadata("ACCOUNT_ID is required".to_string()))?;
     let order_id = std::env::var("ORDER_ID")
         .map_err(|_| TError::InvalidMetadata("ORDER_ID is required".to_string()))?;
     let uid = std::env::var("INSTRUMENT_UID")

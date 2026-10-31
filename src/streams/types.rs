@@ -1,22 +1,37 @@
 use crate::{enums, types};
 
+/// Статус одной подписки в ack стрима.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubscriptionInstrumentStatus {
+    pub instrument_uid: types::Uid,
+    pub success: bool,
+    pub status: String,
+    pub interval: Option<enums::CandlestickInterval>,
+    pub depth: Option<i32>,
+}
+
 /// Типизированное событие bidirectional market-data стрима.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MarketDataEvent {
     CandlesSubscriptionAck {
         tracking_id: String,
+        instruments: Vec<SubscriptionInstrumentStatus>,
     },
     OrderBookSubscriptionAck {
         tracking_id: String,
+        instruments: Vec<SubscriptionInstrumentStatus>,
     },
     TradesSubscriptionAck {
         tracking_id: String,
+        instruments: Vec<SubscriptionInstrumentStatus>,
     },
     InfoSubscriptionAck {
         tracking_id: String,
+        instruments: Vec<SubscriptionInstrumentStatus>,
     },
     LastPriceSubscriptionAck {
         tracking_id: String,
+        instruments: Vec<SubscriptionInstrumentStatus>,
     },
     Candle(types::Candlestick),
     OrderBook(types::OrderBook),

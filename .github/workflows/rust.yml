@@ -14,13 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    # tinkoff-invest-types build.rs compiles protos and needs protoc.
     - name: Install protoc
       run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
     - name: Format
       run: cargo fmt --all -- --check
     - name: Clippy
-      run: cargo clippy --all-targets -- -D warnings
+      run: cargo clippy --all-targets --all-features -- -D warnings
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --all-features --verbose
     - name: Test
-      run: cargo test --verbose
+      run: cargo test --all-features --verbose

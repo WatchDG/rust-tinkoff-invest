@@ -5,29 +5,15 @@ use std::fmt::{Display, Formatter, Result};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TError {
     InterceptorNotSet,
-    HandlerNotSet,
-    AccountNotSet,
-    ChannelNotSet,
     UsersServiceClientNotInit,
     InstrumentsServiceClientNotInit,
     MarketDataServiceClientNotInit,
     MarketDataStreamServiceClientNotInit,
     OperationsServiceClientNotInit,
-    OperationsStreamServiceClientNotInit,
     OrdersServiceClientNotInit,
-    OrdersStreamServiceClientNotInit,
     MarketInstrumentTypeNotCurrency,
     MarketInstrumentTypeNotShare,
     MarketInstrumentTypeNotFuture,
-    CandlestickFigiNotSet,
-    CandlestickIntervalNotSet,
-    CandlestickPriceOpenNotSet,
-    CandlestickPriceHighNotSet,
-    CandlestickPriceLowNotSet,
-    CandlestickPriceCloseNotSet,
-    CandlestickDatetimeNotSet,
-    FigiNotFound,
-    FigiNotSet,
     /// gRPC-статус от API.
     Status {
         code: String,
@@ -45,6 +31,8 @@ pub enum TError {
     InvalidMetadata(String),
     /// Некорректное денежное значение.
     InvalidMoneyValue(String),
+    /// Отрицательное или не помещающееся количество, объём или глубина.
+    InvalidQuantity(String),
     /// Ошибка конфигурации TLS.
     TlsConfig(String),
     /// Стрим закрыт (канал команд/событий или gRPC-соединение).
@@ -55,9 +43,6 @@ impl Display for TError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
             TError::InterceptorNotSet => write!(f, "Interceptor not set"),
-            TError::HandlerNotSet => write!(f, "Handler not set"),
-            TError::AccountNotSet => write!(f, "Account not set"),
-            TError::ChannelNotSet => write!(f, "Channel not set"),
             TError::UsersServiceClientNotInit => {
                 write!(f, "Users service client is not initialized")
             }
@@ -73,14 +58,8 @@ impl Display for TError {
             TError::OperationsServiceClientNotInit => {
                 write!(f, "Operations service client is not initialized")
             }
-            TError::OperationsStreamServiceClientNotInit => {
-                write!(f, "Operations stream service client is not initialized")
-            }
             TError::OrdersServiceClientNotInit => {
                 write!(f, "Orders service client is not initialized")
-            }
-            TError::OrdersStreamServiceClientNotInit => {
-                write!(f, "Orders stream service client is not initialized")
             }
             TError::MarketInstrumentTypeNotCurrency => {
                 write!(f, "Market instrument type is not currency")
@@ -91,15 +70,6 @@ impl Display for TError {
             TError::MarketInstrumentTypeNotFuture => {
                 write!(f, "Market instrument type is not future")
             }
-            TError::CandlestickFigiNotSet => write!(f, "Candlestick FIGI is not set"),
-            TError::CandlestickIntervalNotSet => write!(f, "Candlestick interval is not set"),
-            TError::CandlestickPriceOpenNotSet => write!(f, "Candlestick open price is not set"),
-            TError::CandlestickPriceHighNotSet => write!(f, "Candlestick high price is not set"),
-            TError::CandlestickPriceLowNotSet => write!(f, "Candlestick low price is not set"),
-            TError::CandlestickPriceCloseNotSet => write!(f, "Candlestick close price is not set"),
-            TError::CandlestickDatetimeNotSet => write!(f, "Candlestick datetime is not set"),
-            TError::FigiNotFound => write!(f, "FIGI not found"),
-            TError::FigiNotSet => write!(f, "FIGI is not set"),
             TError::Status { code, message } => {
                 write!(f, "gRPC status {code}: {message}")
             }
@@ -111,6 +81,7 @@ impl Display for TError {
             }
             TError::InvalidMetadata(message) => write!(f, "Invalid metadata: {message}"),
             TError::InvalidMoneyValue(message) => write!(f, "Invalid money value: {message}"),
+            TError::InvalidQuantity(message) => write!(f, "Invalid quantity: {message}"),
             TError::TlsConfig(message) => write!(f, "TLS config error: {message}"),
             TError::StreamClosed => write!(f, "Stream closed"),
         }

@@ -40,8 +40,8 @@ async fn main() -> Result<(), TError> {
     let mut remaining = 10usize;
     while let Some(event) = session.recv().await {
         match event? {
-            MarketDataEvent::CandlesSubscriptionAck { tracking_id }
-            | MarketDataEvent::LastPriceSubscriptionAck { tracking_id } => {
+            MarketDataEvent::CandlesSubscriptionAck { tracking_id, .. }
+            | MarketDataEvent::LastPriceSubscriptionAck { tracking_id, .. } => {
                 println!("subscribed: {tracking_id}");
             }
             MarketDataEvent::Candle(c) => {

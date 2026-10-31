@@ -11,4 +11,7 @@ pub use session::{
     MarketDataEventReceiver, MarketDataStreamConfig, MarketDataStreamHandle,
     MarketDataStreamSession,
 };
-pub use types::{MarketDataCommand, MarketDataEvent, MarketDataSubscription, MarketTrade};
+pub use types::{
+    MarketDataCommand, MarketDataEvent, MarketDataSubscription, MarketTrade,
+    SubscriptionInstrumentStatus,
+};

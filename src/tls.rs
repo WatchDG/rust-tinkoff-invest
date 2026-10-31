@@ -3,8 +3,7 @@
 use tonic::transport::{Certificate, ClientTlsConfig};
 
 /// Russian Trusted Root CA (RSA).
-const RUSSIAN_TRUSTED_ROOT_CA_PEM: &[u8] =
-    include_bytes!("../ca/russian_trusted_root_ca_pem.crt");
+const RUSSIAN_TRUSTED_ROOT_CA_PEM: &[u8] = include_bytes!("../ca/russian_trusted_root_ca_pem.crt");
 
 /// Russian Trusted Root CA GOST 2025.
 const RUSSIAN_TRUSTED_ROOT_CA_GOST_2025_PEM: &[u8] =

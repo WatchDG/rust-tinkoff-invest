@@ -9,6 +9,7 @@ pub enum InstrumentType {
     Currency,
     Share,
     Future,
+    Option,
 }
 
 impl FromStr for InstrumentType {
@@ -19,6 +20,7 @@ impl FromStr for InstrumentType {
             "currency" => Ok(InstrumentType::Currency),
             "share" => Ok(InstrumentType::Share),
             "future" => Ok(InstrumentType::Future),
+            "option" => Ok(InstrumentType::Option),
             other => Err(TError::InvalidInstrumentType(other.to_string())),
         }
     }
@@ -57,6 +59,10 @@ mod tests {
         assert_eq!(
             InstrumentType::try_from("Future").unwrap(),
             InstrumentType::Future
+        );
+        assert_eq!(
+            InstrumentType::try_from("option").unwrap(),
+            InstrumentType::Option
         );
     }
 

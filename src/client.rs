@@ -1,23 +1,96 @@
+#[cfg(feature = "market-data")]
 use std::sync::Arc;
 use std::time::Duration;
+#[cfg(any(
+    feature = "users",
+    feature = "instruments",
+    feature = "market-data",
+    feature = "operations",
+    feature = "orders",
+    feature = "streams"
+))]
 use uuid::Uuid;
 
+use crate::TError;
 use crate::interceptor::TInterceptor;
-use crate::traits::{RequestId, ToAccountIdRef, ToOrderIdRef};
-use crate::{TError, enums, traits, types};
+#[cfg(any(
+    feature = "users",
+    feature = "instruments",
+    feature = "market-data",
+    feature = "operations",
+    feature = "orders",
+    feature = "streams"
+))]
+use crate::traits::RequestId;
+#[cfg(any(feature = "operations", feature = "orders"))]
+use crate::traits::ToAccountIdRef;
+#[cfg(feature = "orders")]
+use crate::traits::ToOrderIdRef;
+#[cfg(any(
+    feature = "users",
+    feature = "instruments",
+    feature = "market-data",
+    feature = "operations",
+    feature = "orders"
+))]
+use crate::types;
+#[cfg(any(
+    feature = "instruments",
+    feature = "market-data",
+    feature = "operations",
+    feature = "orders"
+))]
+use crate::{enums, traits};
+#[cfg(feature = "orders")]
+use tinkoff_invest_types::CancelOrderRequest;
+#[cfg(feature = "users")]
+use tinkoff_invest_types::GetAccountsRequest;
+#[cfg(feature = "market-data")]
+use tinkoff_invest_types::GetCandlesRequest;
+#[cfg(feature = "market-data")]
+use tinkoff_invest_types::GetOrderBookRequest;
+#[cfg(feature = "market-data")]
+use tinkoff_invest_types::GetTradingStatusRequest;
+#[cfg(feature = "instruments")]
+use tinkoff_invest_types::InstrumentIdType;
+#[cfg(feature = "instruments")]
+use tinkoff_invest_types::InstrumentRequest;
+#[cfg(feature = "instruments")]
+use tinkoff_invest_types::InstrumentsRequest;
+#[cfg(feature = "operations")]
+use tinkoff_invest_types::OperationsRequest;
+#[cfg(feature = "orders")]
+use tinkoff_invest_types::OrderIdType;
+#[cfg(feature = "operations")]
+use tinkoff_invest_types::PortfolioRequest;
+#[cfg(feature = "operations")]
+use tinkoff_invest_types::PositionsRequest;
+#[cfg(feature = "orders")]
+use tinkoff_invest_types::PostOrderRequest;
+#[cfg(feature = "instruments")]
+use tinkoff_invest_types::instruments_service_client::InstrumentsServiceClient;
+#[cfg(feature = "market-data")]
+use tinkoff_invest_types::market_data_service_client::MarketDataServiceClient;
 #[cfg(feature = "streams")]
 use tinkoff_invest_types::market_data_stream_service_client::MarketDataStreamServiceClient;
-use tinkoff_invest_types::{
-    self, CancelOrderRequest, GetAccountsRequest, GetCandlesRequest, GetOrderBookRequest,
-    GetTradingStatusRequest, InstrumentIdType, InstrumentRequest, InstrumentsRequest,
-    OperationsRequest, OrderIdType, PortfolioRequest, PositionsRequest, PostOrderRequest,
-    instruments_service_client::InstrumentsServiceClient,
-    market_data_service_client::MarketDataServiceClient,
-    operations_service_client::OperationsServiceClient, orders_service_client::OrdersServiceClient,
-    portfolio_request::CurrencyRequest, users_service_client::UsersServiceClient,
-};
+#[cfg(feature = "operations")]
+use tinkoff_invest_types::operations_service_client::OperationsServiceClient;
+#[cfg(feature = "orders")]
+use tinkoff_invest_types::orders_service_client::OrdersServiceClient;
+#[cfg(feature = "operations")]
+use tinkoff_invest_types::portfolio_request::CurrencyRequest;
+#[cfg(feature = "users")]
+use tinkoff_invest_types::users_service_client::UsersServiceClient;
+#[cfg(any(
+    feature = "users",
+    feature = "instruments",
+    feature = "market-data",
+    feature = "operations",
+    feature = "orders",
+    feature = "streams"
+))]
+use tonic::Request as TonicRequest;
 use tonic::{
-    Request as TonicRequest,
     codec::CompressionEncoding,
     codegen::InterceptedService,
     service::Interceptor,
@@ -29,10 +102,15 @@ use tonic::{
 pub struct TClientBuilderFlags(u8);
 
 impl TClientBuilderFlags {
+    #[cfg(feature = "users")]
     const USERS: u8 = 1 << 0;
+    #[cfg(feature = "instruments")]
     const INSTRUMENTS: u8 = 1 << 1;
+    #[cfg(feature = "market-data")]
     const MARKET_DATA: u8 = 1 << 2;
+    #[cfg(feature = "operations")]
     const OPERATIONS: u8 = 1 << 3;
+    #[cfg(feature = "orders")]
     const ORDERS: u8 = 1 << 4;
     #[cfg(feature = "streams")]
     const MARKET_DATA_STREAM: u8 = 1 << 5;
@@ -53,26 +131,31 @@ impl TClientBuilderFlags {
     }
 
     #[inline]
+    #[cfg(feature = "users")]
     pub fn is_users_enabled(&self) -> bool {
         self.is_enabled(Self::USERS)
     }
 
     #[inline]
+    #[cfg(feature = "instruments")]
     pub fn is_instruments_enabled(&self) -> bool {
         self.is_enabled(Self::INSTRUMENTS)
     }
 
     #[inline]
+    #[cfg(feature = "market-data")]
     pub fn is_market_data_enabled(&self) -> bool {
         self.is_enabled(Self::MARKET_DATA)
     }
 
     #[inline]
+    #[cfg(feature = "operations")]
     pub fn is_operations_enabled(&self) -> bool {
         self.is_enabled(Self::OPERATIONS)
     }
 
     #[inline]
+    #[cfg(feature = "orders")]
     pub fn is_orders_enabled(&self) -> bool {
         self.is_enabled(Self::ORDERS)
     }
@@ -165,30 +248,35 @@ where
     }
 
     #[inline]
+    #[cfg(feature = "users")]
     pub fn enable_users_service_client(mut self, value: bool) -> Self {
         self.flags.set(TClientBuilderFlags::USERS, value);
         self
     }
 
     #[inline]
+    #[cfg(feature = "instruments")]
     pub fn enable_instruments_service_client(mut self, value: bool) -> Self {
         self.flags.set(TClientBuilderFlags::INSTRUMENTS, value);
         self
     }
 
     #[inline]
+    #[cfg(feature = "market-data")]
     pub fn enable_market_data_service_client(mut self, value: bool) -> Self {
         self.flags.set(TClientBuilderFlags::MARKET_DATA, value);
         self
     }
 
     #[inline]
+    #[cfg(feature = "operations")]
     pub fn enable_operations_service_client(mut self, value: bool) -> Self {
         self.flags.set(TClientBuilderFlags::OPERATIONS, value);
         self
     }
 
     #[inline]
+    #[cfg(feature = "orders")]
     pub fn enable_orders_service_client(mut self, value: bool) -> Self {
         self.flags.set(TClientBuilderFlags::ORDERS, value);
         self
@@ -229,14 +317,12 @@ where
             Channel::from_static(Self::DEFAULT_ENDPOINT)
                 .tls_config(tls)
                 .map_err(|e| TError::TlsConfig(e.to_string()))?
-                .timeout(timeout)
-                .http2_keep_alive_interval(Duration::from_secs(30))
-                .keep_alive_timeout(Duration::from_secs(10))
-                .keep_alive_while_idle(true)
         };
+        let endpoint = apply_channel_options(endpoint, timeout);
         let channel = endpoint.connect().await?;
         let interceptor = self.interceptor.ok_or(TError::InterceptorNotSet)?;
 
+        #[cfg(feature = "users")]
         let users_service_client = create_service_client!(
             self.flags.is_users_enabled(),
             &channel,
@@ -245,6 +331,7 @@ where
             max_decoding_message_size
         );
 
+        #[cfg(feature = "instruments")]
         let instruments_service_client = create_service_client!(
             self.flags.is_instruments_enabled(),
             &channel,
@@ -253,6 +340,7 @@ where
             max_decoding_message_size
         );
 
+        #[cfg(feature = "market-data")]
         let market_data_service_client = create_service_client!(
             self.flags.is_market_data_enabled(),
             &channel,
@@ -261,6 +349,7 @@ where
             max_decoding_message_size
         );
 
+        #[cfg(feature = "operations")]
         let operations_service_client = create_service_client!(
             self.flags.is_operations_enabled(),
             &channel,
@@ -269,6 +358,7 @@ where
             max_decoding_message_size
         );
 
+        #[cfg(feature = "orders")]
         let orders_service_client = create_service_client!(
             self.flags.is_orders_enabled(),
             &channel,
@@ -287,10 +377,15 @@ where
         );
 
         Ok(TClient {
+            #[cfg(feature = "users")]
             users_service_client,
+            #[cfg(feature = "instruments")]
             instruments_service_client,
+            #[cfg(feature = "market-data")]
             market_data_service_client,
+            #[cfg(feature = "operations")]
             operations_service_client,
+            #[cfg(feature = "orders")]
             orders_service_client,
             #[cfg(feature = "streams")]
             market_data_stream_service_client,
@@ -307,17 +402,31 @@ where
     }
 }
 
+fn apply_channel_options(endpoint: Endpoint, timeout: Duration) -> Endpoint {
+    endpoint
+        .timeout(timeout)
+        .http2_keep_alive_interval(Duration::from_secs(30))
+        .keep_alive_timeout(Duration::from_secs(10))
+        .keep_alive_while_idle(true)
+}
+
 /// Клиент Tinkoff Invest API.
 ///
 /// Создаётся через [`TClient::new`] или [`TClientBuilder`].
+#[derive(Clone)]
 pub struct TClient<I>
 where
     I: Interceptor + Clone + Send,
 {
+    #[cfg(feature = "users")]
     users_service_client: Option<UsersServiceClient<InterceptedService<Channel, I>>>,
+    #[cfg(feature = "instruments")]
     instruments_service_client: Option<InstrumentsServiceClient<InterceptedService<Channel, I>>>,
+    #[cfg(feature = "market-data")]
     market_data_service_client: Option<MarketDataServiceClient<InterceptedService<Channel, I>>>,
+    #[cfg(feature = "operations")]
     operations_service_client: Option<OperationsServiceClient<InterceptedService<Channel, I>>>,
+    #[cfg(feature = "orders")]
     orders_service_client: Option<OrdersServiceClient<InterceptedService<Channel, I>>>,
     #[cfg(feature = "streams")]
     market_data_stream_service_client:
@@ -328,13 +437,17 @@ impl TClient<TInterceptor> {
     /// Создаёт клиент со всеми сервисами, включёнными через Cargo features.
     pub async fn new(token: String) -> Result<Self, TError> {
         let interceptor = TInterceptor::new(token)?;
-        let builder = TClientBuilder::new()
-            .set_interceptor(Some(interceptor))
-            .enable_users_service_client(cfg!(feature = "users"))
-            .enable_instruments_service_client(cfg!(feature = "instruments"))
-            .enable_market_data_service_client(cfg!(feature = "market-data"))
-            .enable_operations_service_client(cfg!(feature = "operations"))
-            .enable_orders_service_client(cfg!(feature = "orders"));
+        let builder = TClientBuilder::new().set_interceptor(Some(interceptor));
+        #[cfg(feature = "users")]
+        let builder = builder.enable_users_service_client(true);
+        #[cfg(feature = "instruments")]
+        let builder = builder.enable_instruments_service_client(true);
+        #[cfg(feature = "market-data")]
+        let builder = builder.enable_market_data_service_client(true);
+        #[cfg(feature = "operations")]
+        let builder = builder.enable_operations_service_client(true);
+        #[cfg(feature = "orders")]
+        let builder = builder.enable_orders_service_client(true);
         #[cfg(feature = "streams")]
         let builder = builder.enable_market_data_stream_service_client(true);
         builder.build().await
@@ -346,6 +459,14 @@ where
     I: Interceptor + Clone + Send,
 {
     /// Создаёт Request с установленным `x-tracking-id` из контекста.
+    #[cfg(any(
+        feature = "users",
+        feature = "instruments",
+        feature = "market-data",
+        feature = "operations",
+        feature = "orders",
+        feature = "streams"
+    ))]
     fn create_request<T, C>(ctx: &C, message: T) -> Result<TonicRequest<T>, TError>
     where
         C: RequestId,
@@ -362,6 +483,7 @@ where
         Ok(request)
     }
 
+    #[cfg(feature = "users")]
     pub async fn accounts<C>(&self, ctx: &C) -> Result<Vec<types::Account>, TError>
     where
         C: RequestId,
@@ -376,11 +498,12 @@ where
         let accounts = client.get_accounts(request).await?.into_inner().accounts;
         let mut result = Vec::with_capacity(accounts.len());
         for v in accounts {
-            result.push(v.into());
+            result.push(v.try_into()?);
         }
         Ok(result)
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn market_instruments<C>(
         &self,
         ctx: &C,
@@ -393,9 +516,11 @@ where
             enums::InstrumentType::Share => self.shares(ctx).await,
             enums::InstrumentType::Currency => self.currencies(ctx).await,
             enums::InstrumentType::Future => self.futures(ctx).await,
+            enums::InstrumentType::Option => Err(TError::InvalidInstrumentType("option".into())),
         }
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn market_instrument<T, C>(
         &self,
         ctx: &C,
@@ -409,9 +534,11 @@ where
             enums::InstrumentType::Share => self.share(ctx, instrument).await,
             enums::InstrumentType::Currency => self.currency(ctx, instrument).await,
             enums::InstrumentType::Future => self.future(ctx, instrument).await,
+            enums::InstrumentType::Option => Err(TError::InvalidInstrumentType("option".into())),
         }
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn shares<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
     where
         C: RequestId,
@@ -427,11 +554,12 @@ where
         let shares = client.shares(request).await?.into_inner().instruments;
         let mut result = Vec::with_capacity(shares.len());
         for x in shares {
-            result.push(x.into());
+            result.push(x.try_into()?);
         }
         Ok(result)
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn share<T, C>(
         &self,
         ctx: &C,
@@ -456,9 +584,10 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let share = client.share_by(request).await?.into_inner().instrument;
-        Ok(share.map(|x| x.into()))
+        Ok(share.map(types::MarketInstrument::try_from).transpose()?)
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn currencies<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
     where
         C: RequestId,
@@ -474,11 +603,12 @@ where
         let currencies = client.currencies(request).await?.into_inner().instruments;
         let mut result = Vec::with_capacity(currencies.len());
         for v in currencies {
-            result.push(v.into());
+            result.push(v.try_into()?);
         }
         Ok(result)
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn currency<T, C>(
         &self,
         ctx: &C,
@@ -503,9 +633,12 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let currency = client.currency_by(request).await?.into_inner().instrument;
-        Ok(currency.map(|x| x.into()))
+        Ok(currency
+            .map(types::MarketInstrument::try_from)
+            .transpose()?)
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn futures<C>(&self, ctx: &C) -> Result<Vec<types::MarketInstrument>, TError>
     where
         C: RequestId,
@@ -521,11 +654,12 @@ where
         let futures = client.futures(request).await?.into_inner().instruments;
         let mut result = Vec::with_capacity(futures.len());
         for v in futures {
-            result.push(v.into());
+            result.push(v.try_into()?);
         }
         Ok(result)
     }
 
+    #[cfg(feature = "instruments")]
     pub async fn future<T, C>(
         &self,
         ctx: &C,
@@ -550,9 +684,10 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let future = client.future_by(request).await?.into_inner().instrument;
-        Ok(future.map(|x| x.into()))
+        Ok(future.map(types::MarketInstrument::try_from).transpose()?)
     }
 
+    #[cfg(feature = "market-data")]
     pub async fn trading_status<T, C>(
         &self,
         ctx: &C,
@@ -580,6 +715,7 @@ where
             .into())
     }
 
+    #[cfg(feature = "market-data")]
     pub async fn candlesticks<T, C>(
         &self,
         ctx: &C,
@@ -596,8 +732,8 @@ where
         let interval = Arc::new(interval);
         let mut message = GetCandlesRequest {
             instrument_id: Some((*uid).clone().into()),
-            from: Some(from.into()),
-            to: Some(to.into()),
+            from: Some(from.try_into()?),
+            to: Some(to.try_into()?),
             ..Default::default()
         };
         message.set_interval((*interval).clone().into());
@@ -618,8 +754,8 @@ where
                     high: x.high.map(|v| v.into()),
                     low: x.low.map(|v| v.into()),
                     close: x.close.map(|v| v.into()),
-                    volume: x.volume as u64,
-                    datetime: time.into(),
+                    volume: crate::num::to_u64(x.volume)?,
+                    datetime: time.try_into()?,
                     is_complete: x.is_complete,
                 });
             }
@@ -627,6 +763,7 @@ where
         Ok(result)
     }
 
+    #[cfg(feature = "market-data")]
     pub async fn orderbook<T, C>(
         &self,
         ctx: &C,
@@ -638,7 +775,7 @@ where
         C: RequestId,
     {
         let message = GetOrderBookRequest {
-            depth: depth as i32,
+            depth: crate::num::to_i32(depth)?,
             instrument_id: Some(instrument.to_uid().into()),
             ..Default::default()
         };
@@ -648,9 +785,14 @@ where
             .ok_or(TError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
-        Ok(client.get_order_book(request).await?.into_inner().into())
+        Ok(client
+            .get_order_book(request)
+            .await?
+            .into_inner()
+            .try_into()?)
     }
 
+    #[cfg(feature = "orders")]
     pub async fn order<C>(&self, ctx: &C) -> Result<types::Order, TError>
     where
         C: RequestId + ToAccountIdRef + ToOrderIdRef,
@@ -667,10 +809,11 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let order_state = client.get_order_state(request).await?.into_inner();
-        Ok(types::Order::from(order_state))
+        Ok(types::Order::try_from(order_state)?)
     }
 
     #[inline]
+    #[cfg(feature = "operations")]
     pub async fn operations<K, C>(
         &self,
         ctx: &C,
@@ -683,8 +826,8 @@ where
         K: traits::ToFigi,
         C: RequestId + ToAccountIdRef,
     {
-        let from = Some(from.into());
-        let to = Some(to.into());
+        let from = Some(from.try_into()?);
+        let to = Some(to.try_into()?);
         let client = self
             .operations_service_client
             .as_ref()
@@ -703,11 +846,12 @@ where
         let operations = response.into_inner().operations;
         let mut result = Vec::with_capacity(operations.len());
         for x in operations {
-            result.push(x.into());
+            result.push(x.try_into()?);
         }
         Ok(result)
     }
 
+    #[cfg(feature = "operations")]
     pub async fn portfolio<C>(&self, ctx: &C) -> Result<Vec<types::PortfolioPosition>, TError>
     where
         C: RequestId + ToAccountIdRef,
@@ -726,11 +870,12 @@ where
         let positions = client.get_portfolio(request).await?.into_inner().positions;
         let mut result = Vec::with_capacity(positions.len());
         for x in &positions {
-            result.push(x.into());
+            result.push(x.try_into()?);
         }
         Ok(result)
     }
 
+    #[cfg(feature = "operations")]
     pub async fn positions<C>(&self, ctx: &C) -> Result<types::Positions, TError>
     where
         C: RequestId + ToAccountIdRef,
@@ -750,6 +895,7 @@ where
     }
 
     #[inline]
+    #[cfg(feature = "orders")]
     pub async fn limit_order<C>(
         &self,
         ctx: &C,
@@ -765,7 +911,7 @@ where
             order_id: ctx.to_order_id_ref().into(),
             account_id: ctx.to_account_id_ref().into(),
             instrument_id: instrument.to_uid().into(),
-            quantity: quantity as i64,
+            quantity: crate::num::to_i64(quantity)?,
             price: Some(price.into()),
             ..Default::default()
         };
@@ -778,11 +924,12 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let response = client.post_order(request).await?;
-        let order = response.into_inner().into();
+        let order = response.into_inner().try_into()?;
         Ok(order)
     }
 
     #[inline]
+    #[cfg(feature = "orders")]
     pub async fn cancel_order<C>(&self, ctx: &C) -> Result<Option<types::DateTime>, TError>
     where
         C: RequestId + ToAccountIdRef + ToOrderIdRef,
@@ -792,7 +939,7 @@ where
             order_id: ctx.to_order_id_ref().into(),
             ..Default::default()
         };
-        message.set_order_id_type(OrderIdType::Exchange);
+        message.set_order_id_type(OrderIdType::Request);
         let client = self
             .orders_service_client
             .as_ref()
@@ -800,7 +947,11 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let response = client.cancel_order(request).await?;
-        Ok(response.into_inner().time.map(|x| x.into()))
+        Ok(response
+            .into_inner()
+            .time
+            .map(types::DateTime::try_from)
+            .transpose()?)
     }
 }
 

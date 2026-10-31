@@ -53,22 +53,28 @@ impl MoneyValue {
 impl Add for MoneyValue {
     type Output = MoneyValue;
     fn add(self, rhs: Self) -> Self::Output {
-        let mut units = self.units + rhs.units;
-        let mut nano = self.nano + rhs.nano;
+        let mut units = self
+            .units
+            .checked_add(rhs.units)
+            .expect("MoneyValue units overflow");
+        let mut nano = self
+            .nano
+            .checked_add(rhs.nano)
+            .expect("MoneyValue nano overflow");
 
         if nano >= 1_000_000_000 {
-            units += 1;
+            units = units.checked_add(1).expect("MoneyValue units overflow");
             nano -= 1_000_000_000;
         } else if nano <= -1_000_000_000 {
-            units -= 1;
+            units = units.checked_sub(1).expect("MoneyValue units overflow");
             nano += 1_000_000_000;
         }
 
         if units >= 1 && nano < 0 {
-            units -= 1;
+            units = units.checked_sub(1).expect("MoneyValue units overflow");
             nano += 1_000_000_000;
         } else if units <= -1 && nano > 0 {
-            units += 1;
+            units = units.checked_add(1).expect("MoneyValue units overflow");
             nano -= 1_000_000_000;
         }
 

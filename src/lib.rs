@@ -17,6 +17,7 @@ mod client;
 pub mod enums;
 mod error;
 pub mod interceptor;
+mod num;
 #[cfg(feature = "streams")]
 pub mod streams;
 pub mod tls;
