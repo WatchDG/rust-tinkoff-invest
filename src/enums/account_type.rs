@@ -10,6 +10,10 @@ pub enum AccountType {
     Debit,
     Saving,
     Dfa,
+    SharedSaving,
+    Deposit,
+    Oms,
+    OfpDeposit,
 }
 
 impl From<tit::AccountType> for AccountType {
@@ -23,6 +27,10 @@ impl From<tit::AccountType> for AccountType {
             tit::AccountType::Debit => AccountType::Debit,
             tit::AccountType::Saving => AccountType::Saving,
             tit::AccountType::Dfa => AccountType::Dfa,
+            tit::AccountType::SharedSaving => AccountType::SharedSaving,
+            tit::AccountType::Deposit => AccountType::Deposit,
+            tit::AccountType::Oms => AccountType::Oms,
+            tit::AccountType::OfpDeposit => AccountType::OfpDeposit,
         }
     }
 }
@@ -41,6 +49,14 @@ mod tests {
         assert_eq!(
             AccountType::from(tit::AccountType::Saving),
             AccountType::Saving
+        );
+        assert_eq!(
+            AccountType::from(tit::AccountType::SharedSaving),
+            AccountType::SharedSaving
+        );
+        assert_eq!(
+            AccountType::from(tit::AccountType::OfpDeposit),
+            AccountType::OfpDeposit
         );
     }
 }
