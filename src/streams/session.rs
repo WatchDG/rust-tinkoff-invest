@@ -241,10 +241,10 @@ where
                 if request_tx.send(item.request).await.is_err() {
                     return;
                 }
-                if let Some(intent) = item.intent {
-                    if intent_tx.send(intent).is_err() {
-                        return;
-                    }
+                if let Some(intent) = item.intent
+                    && intent_tx.send(intent).is_err()
+                {
+                    return;
                 }
             }
         }
@@ -291,10 +291,10 @@ async fn run_reader(
                         continue;
                     }
                 };
-                if is_subscription_ack(&event) {
-                    if let Some(intent) = intent_rx.recv().await {
-                        apply_intent(&book, intent, &event);
-                    }
+                if is_subscription_ack(&event)
+                    && let Some(intent) = intent_rx.recv().await
+                {
+                    apply_intent(&book, intent, &event);
                 }
                 if let MarketDataEvent::Candle(candle) = &mut event {
                     mark_waiting_close(candle, &book);

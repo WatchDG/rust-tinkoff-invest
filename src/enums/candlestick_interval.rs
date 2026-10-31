@@ -103,26 +103,6 @@ impl TryFrom<&CandlestickInterval> for tit::SubscriptionInterval {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn second_interval_is_not_unspecified() {
-        let err = tit::SubscriptionInterval::try_from(&CandlestickInterval::Second5).unwrap_err();
-        assert!(matches!(err, TError::InvalidMetadata(_)));
-        assert_ne!(
-            format!("{err}"),
-            format!(
-                "{}",
-                TError::InvalidMetadata(
-                    "subscription interval Unspecified is not supported".into()
-                )
-            )
-        );
-    }
-}
-
 impl From<tit::SubscriptionInterval> for CandlestickInterval {
     fn from(v: tit::SubscriptionInterval) -> Self {
         match v {
@@ -141,5 +121,25 @@ impl From<tit::SubscriptionInterval> for CandlestickInterval {
             tit::SubscriptionInterval::Week => CandlestickInterval::Week,
             tit::SubscriptionInterval::Month => CandlestickInterval::Month,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn second_interval_is_not_unspecified() {
+        let err = tit::SubscriptionInterval::try_from(&CandlestickInterval::Second5).unwrap_err();
+        assert!(matches!(err, TError::InvalidMetadata(_)));
+        assert_ne!(
+            format!("{err}"),
+            format!(
+                "{}",
+                TError::InvalidMetadata(
+                    "subscription interval Unspecified is not supported".into()
+                )
+            )
+        );
     }
 }

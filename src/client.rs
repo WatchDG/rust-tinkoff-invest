@@ -584,7 +584,7 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let share = client.share_by(request).await?.into_inner().instrument;
-        Ok(share.map(types::MarketInstrument::try_from).transpose()?)
+        share.map(types::MarketInstrument::try_from).transpose()
     }
 
     #[cfg(feature = "instruments")]
@@ -633,9 +633,7 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let currency = client.currency_by(request).await?.into_inner().instrument;
-        Ok(currency
-            .map(types::MarketInstrument::try_from)
-            .transpose()?)
+        currency.map(types::MarketInstrument::try_from).transpose()
     }
 
     #[cfg(feature = "instruments")]
@@ -684,7 +682,7 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let future = client.future_by(request).await?.into_inner().instrument;
-        Ok(future.map(types::MarketInstrument::try_from).transpose()?)
+        future.map(types::MarketInstrument::try_from).transpose()
     }
 
     #[cfg(feature = "market-data")]
@@ -785,11 +783,11 @@ where
             .ok_or(TError::MarketDataServiceClientNotInit)?;
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
-        Ok(client
+        client
             .get_order_book(request)
             .await?
             .into_inner()
-            .try_into()?)
+            .try_into()
     }
 
     #[cfg(feature = "orders")]
@@ -809,7 +807,7 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let order_state = client.get_order_state(request).await?.into_inner();
-        Ok(types::Order::try_from(order_state)?)
+        types::Order::try_from(order_state)
     }
 
     #[inline]
@@ -947,11 +945,11 @@ where
         let request = Self::create_request(ctx, message)?;
         let mut client = client.clone();
         let response = client.cancel_order(request).await?;
-        Ok(response
+        response
             .into_inner()
             .time
             .map(types::DateTime::try_from)
-            .transpose()?)
+            .transpose()
     }
 }
 
