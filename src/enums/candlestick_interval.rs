@@ -1,4 +1,8 @@
+use std::convert::TryFrom;
+
 use tinkoff_invest_types as tit;
+
+use crate::TError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CandlestickInterval {
@@ -69,9 +73,11 @@ impl From<CandlestickInterval> for tit::CandleInterval {
     }
 }
 
-impl From<&CandlestickInterval> for tit::SubscriptionInterval {
-    fn from(v: &CandlestickInterval) -> Self {
-        match v {
+impl TryFrom<&CandlestickInterval> for tit::SubscriptionInterval {
+    type Error = TError;
+
+    fn try_from(v: &CandlestickInterval) -> Result<Self, Self::Error> {
+        Ok(match v {
             CandlestickInterval::Unspecified => tit::SubscriptionInterval::Unspecified,
             CandlestickInterval::Min => tit::SubscriptionInterval::OneMinute,
             CandlestickInterval::Min2 => tit::SubscriptionInterval::SubscriptionInterval2Min,
@@ -86,8 +92,14 @@ impl From<&CandlestickInterval> for tit::SubscriptionInterval {
             CandlestickInterval::Day => tit::SubscriptionInterval::OneDay,
             CandlestickInterval::Week => tit::SubscriptionInterval::Week,
             CandlestickInterval::Month => tit::SubscriptionInterval::Month,
-            _ => tit::SubscriptionInterval::Unspecified,
-        }
+            CandlestickInterval::Second5
+            | CandlestickInterval::Second10
+            | CandlestickInterval::Second30 => {
+                return Err(TError::InvalidMetadata(format!(
+                    "subscription interval {v:?} is not supported"
+                )));
+            }
+        })
     }
 }
 
@@ -109,5 +121,25 @@ impl From<tit::SubscriptionInterval> for CandlestickInterval {
             tit::SubscriptionInterval::Week => CandlestickInterval::Week,
             tit::SubscriptionInterval::Month => CandlestickInterval::Month,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn second_interval_is_not_unspecified() {
+        let err = tit::SubscriptionInterval::try_from(&CandlestickInterval::Second5).unwrap_err();
+        assert!(matches!(err, TError::InvalidMetadata(_)));
+        assert_ne!(
+            format!("{err}"),
+            format!(
+                "{}",
+                TError::InvalidMetadata(
+                    "subscription interval Unspecified is not supported".into()
+                )
+            )
+        );
     }
 }

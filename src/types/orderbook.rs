@@ -1,6 +1,8 @@
+use std::convert::TryFrom;
+
 use tinkoff_invest_types as tit;
 
-use crate::types;
+use crate::{TError, types};
 
 /// Книга заявок.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,40 +26,58 @@ pub struct OrderBook {
     pub datetime: Option<types::DateTime>,
 }
 
-impl From<tit::GetOrderBookResponse> for OrderBook {
-    fn from(value: tit::GetOrderBookResponse) -> Self {
-        let bid_orders = value.bids.iter().map(|&x| x.into()).collect();
-        let ask_orders = value.asks.iter().map(|&x| x.into()).collect();
-        Self {
-            // figi: value.figi.into(),
-            instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
-            depth: value.depth as u32,
+impl TryFrom<tit::GetOrderBookResponse> for OrderBook {
+    type Error = TError;
+
+    fn try_from(value: tit::GetOrderBookResponse) -> Result<Self, Self::Error> {
+        let mut bid_orders = Vec::with_capacity(value.bids.len());
+        for x in &value.bids {
+            bid_orders.push((*x).try_into()?);
+        }
+        let mut ask_orders = Vec::with_capacity(value.asks.len());
+        for x in &value.asks {
+            ask_orders.push((*x).try_into()?);
+        }
+        Ok(Self {
+            instrument_uid: types::Uid::from_api_str(value.instrument_uid.as_str())?,
+            depth: crate::num::to_u32(value.depth)?,
             bid_orders,
             ask_orders,
             last_trade_price: value.last_price.map(|x| x.into()),
             close_trade_price: value.close_price.map(|x| x.into()),
             limit_price_up: value.limit_up.map(|x| x.into()),
             limit_price_down: value.limit_down.map(|x| x.into()),
-            datetime: value.orderbook_ts.map(|x| x.into()),
-        }
+            datetime: value
+                .orderbook_ts
+                .map(types::DateTime::try_from)
+                .transpose()?,
+        })
     }
 }
 
-impl From<tit::OrderBook> for OrderBook {
-    fn from(value: tit::OrderBook) -> Self {
-        let bid_orders = value.bids.iter().map(|&x| x.into()).collect();
-        let ask_orders = value.asks.iter().map(|&x| x.into()).collect();
-        Self {
-            instrument_uid: types::Uid::from(value.instrument_uid.as_str()),
-            depth: value.depth as u32,
+impl TryFrom<tit::OrderBook> for OrderBook {
+    type Error = TError;
+
+    fn try_from(value: tit::OrderBook) -> Result<Self, Self::Error> {
+        let mut bid_orders = Vec::with_capacity(value.bids.len());
+        for x in &value.bids {
+            bid_orders.push((*x).try_into()?);
+        }
+        let mut ask_orders = Vec::with_capacity(value.asks.len());
+        for x in &value.asks {
+            ask_orders.push((*x).try_into()?);
+        }
+        Ok(Self {
+            instrument_uid: types::Uid::from_api_str(value.instrument_uid.as_str())?,
+            depth: crate::num::to_u32(value.depth)?,
             bid_orders,
             ask_orders,
             last_trade_price: None,
             close_trade_price: None,
             limit_price_up: value.limit_up.map(|x| x.into()),
             limit_price_down: value.limit_down.map(|x| x.into()),
-            datetime: value.time.map(|x| x.into()),
-        }
+            datetime: value.time.map(types::DateTime::try_from).transpose()?,
+        })
     }
 }
 
@@ -69,11 +89,13 @@ pub struct OrderBookOrder {
     pub lots: u64,
 }
 
-impl From<tit::Order> for OrderBookOrder {
-    fn from(value: tit::Order) -> Self {
-        OrderBookOrder {
+impl TryFrom<tit::Order> for OrderBookOrder {
+    type Error = TError;
+
+    fn try_from(value: tit::Order) -> Result<Self, Self::Error> {
+        Ok(OrderBookOrder {
             price: value.price.map(|x| x.into()),
-            lots: value.quantity as u64,
-        }
+            lots: crate::num::to_u64(value.quantity)?,
+        })
     }
 }

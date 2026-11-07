@@ -26,8 +26,14 @@ pub struct Position {
 
 impl From<tit::PositionsResponse> for Positions {
     fn from(v: tit::PositionsResponse) -> Self {
-        let money_available: Vec<types::Money> = v.money.iter().map(|x| x.into()).collect();
-        let money_blocked: Vec<types::Money> = v.blocked.iter().map(|x| x.into()).collect();
+        let mut money_available: Vec<types::Money> = Vec::with_capacity(v.money.len());
+        for x in &v.money {
+            money_available.push(x.into());
+        }
+        let mut money_blocked: Vec<types::Money> = Vec::with_capacity(v.blocked.len());
+        for x in &v.blocked {
+            money_blocked.push(x.into());
+        }
 
         let mut money = HashMap::with_capacity(v.money.len());
         let mut securities = HashMap::with_capacity(v.securities.len());

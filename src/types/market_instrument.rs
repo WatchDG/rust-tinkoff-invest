@@ -1,6 +1,8 @@
+use std::convert::TryFrom;
+
 use tinkoff_invest_types as tit;
 
-use crate::{enums, traits, types};
+use crate::{TError, enums, traits, types};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MarketInstrument {
@@ -27,18 +29,20 @@ pub struct MarketInstrument {
     pub is_sell_available: bool,
 }
 
-impl From<tit::Currency> for MarketInstrument {
-    fn from(value: tit::Currency) -> Self {
+impl TryFrom<tit::Currency> for MarketInstrument {
+    type Error = TError;
+
+    fn try_from(value: tit::Currency) -> Result<Self, Self::Error> {
         let trading_status = value.trading_status().into();
-        Self {
-            uid: value.uid.as_str().into(),
+        Ok(Self {
+            uid: types::Uid::from_api_str(value.uid.as_str())?,
             figi: Some(value.figi.into()),
             isin: Some(value.isin.into()),
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
             instrument_type: enums::InstrumentType::Currency,
             name: value.name,
-            lot_size: value.lot as u64,
+            lot_size: crate::num::to_u64(value.lot)?,
             currency: value.currency.into(),
             min_price_increment: value.min_price_increment.map(|x| x.into()),
             trading_status,
@@ -52,40 +56,24 @@ impl From<tit::Currency> for MarketInstrument {
             is_api_trade_available: value.api_trade_available_flag,
             is_buy_available: value.buy_available_flag,
             is_sell_available: value.sell_available_flag,
-        }
+        })
     }
 }
 
-impl From<tit::Share> for MarketInstrument {
-    fn from(value: tit::Share) -> Self {
+impl TryFrom<tit::Share> for MarketInstrument {
+    type Error = TError;
+
+    fn try_from(value: tit::Share) -> Result<Self, Self::Error> {
         let trading_status = value.trading_status().into();
-        // let risk_rate_long = if let Some(klong) = value.klong {
-        //     match klong.units {
-        //         2 => value.dlong.map(|x| x.into()),
-        //         1 => value.dlong_min.map(|x| x.into()),
-        //         _ => None,
-        //     }
-        // } else {
-        //     None
-        // };
-        // let risk_rate_short = if let Some(kshort) = value.kshort {
-        //     match kshort.units {
-        //         2 => value.dshort.map(|x| x.into()),
-        //         1 => value.dshort_min.map(|x| x.into()),
-        //         _ => None,
-        //     }
-        // } else {
-        //     None
-        // };
-        Self {
-            uid: value.uid.as_str().into(),
+        Ok(Self {
+            uid: types::Uid::from_api_str(value.uid.as_str())?,
             figi: Some(value.figi.into()),
             isin: Some(value.isin.into()),
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
             instrument_type: enums::InstrumentType::Share,
             name: value.name,
-            lot_size: value.lot as u64,
+            lot_size: crate::num::to_u64(value.lot)?,
             currency: value.currency.into(),
             min_price_increment: value.min_price_increment.map(|x| x.into()),
             trading_status,
@@ -99,40 +87,24 @@ impl From<tit::Share> for MarketInstrument {
             is_api_trade_available: value.api_trade_available_flag,
             is_buy_available: value.buy_available_flag,
             is_sell_available: value.sell_available_flag,
-        }
+        })
     }
 }
 
-impl From<tit::Future> for MarketInstrument {
-    fn from(value: tit::Future) -> Self {
+impl TryFrom<tit::Future> for MarketInstrument {
+    type Error = TError;
+
+    fn try_from(value: tit::Future) -> Result<Self, Self::Error> {
         let trading_status = value.trading_status().into();
-        // let risk_rate_long = if let Some(klong) = value.klong {
-        //     match klong.units {
-        //         2 => value.dlong.map(|x| x.into()),
-        //         1 => value.dlong_min.map(|x| x.into()),
-        //         _ => None,
-        //     }
-        // } else {
-        //     None
-        // };
-        // let risk_rate_short = if let Some(kshort) = value.kshort {
-        //     match kshort.units {
-        //         2 => value.dshort.map(|x| x.into()),
-        //         1 => value.dshort_min.map(|x| x.into()),
-        //         _ => None,
-        //     }
-        // } else {
-        //     None
-        // };
-        Self {
-            uid: value.uid.as_str().into(),
+        Ok(Self {
+            uid: types::Uid::from_api_str(value.uid.as_str())?,
             figi: Some(value.figi.into()),
             isin: None,
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
             instrument_type: enums::InstrumentType::Future,
             name: value.name,
-            lot_size: value.lot as u64,
+            lot_size: crate::num::to_u64(value.lot)?,
             currency: value.currency.into(),
             min_price_increment: value.min_price_increment.map(|x| x.into()),
             trading_status,
@@ -140,28 +112,33 @@ impl From<tit::Future> for MarketInstrument {
             risk_rate_short: None,
             future_asset: Some(value.basic_asset),
             future_asset_size: value.basic_asset_size.map(|x| x.into()),
-            future_expiration_date: value.expiration_date.map(|x| x.into()),
+            future_expiration_date: value
+                .expiration_date
+                .map(types::DateTime::try_from)
+                .transpose()?,
             option_strike_price: None,
             option_expiration_date: None,
             is_api_trade_available: value.api_trade_available_flag,
             is_buy_available: value.buy_available_flag,
             is_sell_available: value.sell_available_flag,
-        }
+        })
     }
 }
 
-impl From<tit::Option> for MarketInstrument {
-    fn from(value: tit::Option) -> Self {
+impl TryFrom<tit::Option> for MarketInstrument {
+    type Error = TError;
+
+    fn try_from(value: tit::Option) -> Result<Self, Self::Error> {
         let trading_status = value.trading_status().into();
-        Self {
-            uid: value.uid.as_str().into(),
+        Ok(Self {
+            uid: types::Uid::from_api_str(value.uid.as_str())?,
             figi: None,
             isin: None,
             ticker: value.ticker.into(),
             class_code: value.class_code.into(),
-            instrument_type: enums::InstrumentType::Future,
+            instrument_type: enums::InstrumentType::Option,
             name: value.name,
-            lot_size: value.lot as u64,
+            lot_size: crate::num::to_u64(value.lot)?,
             currency: value.currency.into(),
             min_price_increment: value.min_price_increment.map(|x| x.into()),
             trading_status,
@@ -171,11 +148,14 @@ impl From<tit::Option> for MarketInstrument {
             future_asset_size: None,
             future_expiration_date: None,
             option_strike_price: value.strike_price.map(|x| x.into()),
-            option_expiration_date: value.expiration_date.map(|x| x.into()),
+            option_expiration_date: value
+                .expiration_date
+                .map(types::DateTime::try_from)
+                .transpose()?,
             is_api_trade_available: value.api_trade_available_flag,
             is_buy_available: value.buy_available_flag,
             is_sell_available: value.sell_available_flag,
-        }
+        })
     }
 }
 
@@ -194,5 +174,21 @@ impl traits::ToInstrumentType for &MarketInstrument {
 impl traits::ToClassCode for &MarketInstrument {
     fn to_class_code(&self) -> enums::ClassCode {
         self.class_code.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn option_is_not_future() {
+        let option = tit::Option {
+            uid: "550e8400-e29b-41d4-a716-446655440000".into(),
+            lot: 1,
+            ..Default::default()
+        };
+        let instrument = MarketInstrument::try_from(option).unwrap();
+        assert_eq!(instrument.instrument_type, enums::InstrumentType::Option);
     }
 }

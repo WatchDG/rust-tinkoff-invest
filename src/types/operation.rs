@@ -1,6 +1,8 @@
+use std::convert::TryFrom;
+
 use tinkoff_invest_types as tit;
 
-use crate::{enums, types};
+use crate::{TError, enums, types};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Operation {
@@ -30,8 +32,10 @@ pub struct Operation {
     pub datetime: Option<types::DateTime>,
 }
 
-impl From<tit::Operation> for Operation {
-    fn from(value: tit::Operation) -> Self {
+impl TryFrom<tit::Operation> for Operation {
+    type Error = TError;
+
+    fn try_from(value: tit::Operation) -> Result<Self, Self::Error> {
         let parent_id = if !value.parent_operation_id.is_empty() {
             Some(value.parent_operation_id.clone())
         } else {
@@ -39,7 +43,7 @@ impl From<tit::Operation> for Operation {
         };
         let state = value.state().into();
         let operation_type = value.operation_type().into();
-        Operation {
+        Ok(Operation {
             id: value.id,
             parent_id,
             figi: value.figi.into(),
@@ -47,11 +51,17 @@ impl From<tit::Operation> for Operation {
             total: value.payment.map(|x| x.into()),
             price: value.price.map(|x| x.into()),
             state,
-            lots: value.quantity as u64,
-            lots_rest: value.quantity_rest as u64,
+            lots: crate::num::to_u64(value.quantity)?,
+            lots_rest: crate::num::to_u64(value.quantity_rest)?,
             operation_type,
-            trades: value.trades.iter().map(|x| x.clone().into()).collect(),
-            datetime: value.date.map(|x| x.into()),
-        }
+            trades: {
+                let mut trades = Vec::with_capacity(value.trades.len());
+                for x in &value.trades {
+                    trades.push(x.clone().try_into()?);
+                }
+                trades
+            },
+            datetime: value.date.map(types::DateTime::try_from).transpose()?,
+        })
     }
 }

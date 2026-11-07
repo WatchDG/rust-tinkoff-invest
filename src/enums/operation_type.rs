@@ -66,6 +66,11 @@ pub enum OperationType {
     OverIncome,
     OptionExpiration,
     FutureExpiration,
+    OtherFee,
+    Other,
+    DfaRedemption,
+    PrimaryOrder,
+    Funding,
 }
 
 impl From<tit::OperationType> for OperationType {
@@ -134,6 +139,11 @@ impl From<tit::OperationType> for OperationType {
             tit::OperationType::OverIncome => OperationType::OverIncome,
             tit::OperationType::OptionExpiration => OperationType::OptionExpiration,
             tit::OperationType::FutureExpiration => OperationType::FutureExpiration,
+            tit::OperationType::OtherFee => OperationType::OtherFee,
+            tit::OperationType::Other => OperationType::Other,
+            tit::OperationType::DfaRedemption => OperationType::DfaRedemption,
+            tit::OperationType::PrimaryOrder => OperationType::PrimaryOrder,
+            tit::OperationType::Funding => OperationType::Funding,
         }
     }
 }
